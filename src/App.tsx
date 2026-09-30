@@ -2,19 +2,14 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 
+import LandingPage from './pages/LandingPage'; // Ajustá la ruta si lo guardaste en otra carpeta como /components
+
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* La ruta base redirige automáticamente al login */}
-        <Route path="/" element={<Navigate to="/login" />} />
-        
-        {/* Las pantallas de nuestra aplicación */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-    </BrowserRouter>
-  )
+    <>
+      <LandingPage />
+    </>
+  );
 }
 
-export default App
+export default App;
