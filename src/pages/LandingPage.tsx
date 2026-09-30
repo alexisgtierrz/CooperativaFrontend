@@ -32,8 +32,7 @@ export default function LandingPage() {
       localStorage.setItem('token', data.token); 
       
       alert('¡Login exitoso!');
-      setIsLoginOpen(false); // Cierra el modal
-      // window.location.href = '/dashboard'; 
+      setIsLoginOpen(false);
     } catch (err: any) {
       setError(err.message || 'Error al conectar con el servidor');
     } finally {
@@ -58,7 +57,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col font-sans bg-gray-50">
       
-      {/* 1. NAVBAR */}
+      {/* Navbar */}
       <header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm relative z-20">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-full border-2 border-dashed border-green-500"></div>
@@ -80,9 +79,7 @@ export default function LandingPage() {
         </button>
       </header>
 
-      {/* 2. HERO SECTION */}
       <section className="relative pt-16 pb-24 px-4 bg-gradient-to-br from-[#0c3b24] via-[#167041] to-[#22c55e] flex flex-col items-center text-center overflow-hidden">
-        {/* Círculos abstractos de fondo */}
         <div className="absolute right-0 top-0 w-[600px] h-[600px] border-[80px] border-white/5 rounded-full translate-x-1/3 -translate-y-1/4 pointer-events-none"></div>
         
         <div className="bg-white/10 border border-white/20 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 z-10 flex items-center gap-2">
@@ -104,7 +101,7 @@ export default function LandingPage() {
           <button className="bg-green-700 hover:bg-green-800 text-white font-medium px-6 py-2 rounded-full text-sm">Buscar</button>
         </div>
 
-        {/* Botones de acción rápida */}
+        {/* Botones de accion rápida */}
         <div className="flex gap-4 z-10">
           <button onClick={() => setIsLoginOpen(true)} className="bg-[#4ade80] hover:bg-green-400 text-[#064e3b] font-bold py-2.5 px-6 rounded text-sm flex items-center gap-2 shadow-lg">
             OFICINA VIRTUAL <span>→</span>
@@ -115,7 +112,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 3. ACCESOS RÁPIDOS */}
+      {/* Accesos rapidos */}
       <section className="max-w-6xl mx-auto px-4 -mt-10 relative z-20 w-full mb-16">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex justify-between items-center mb-6">
@@ -135,7 +132,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 4. SERVICIOS */}
+      {/* Servicios */}
       <section className="max-w-6xl mx-auto px-4 py-8 mb-16 text-center">
         <h4 className="text-green-600 font-bold text-sm mb-2 tracking-widest uppercase">Nuestros Servicios</h4>
         <h2 className="text-3xl font-extrabold text-gray-900 mb-10">Todo lo que tu hogar necesita para estar conectado</h2>
@@ -192,7 +189,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 5. MEDIOS DE PAGO Y OFICINA VIRTUAL */}
+      {/* Medios de pago y oficina virtual */}
       <section className="bg-white py-16">
         <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
           <div>
@@ -238,7 +235,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FOOTER BÁSICO */}
+      {/* Footer */}
       <footer className="bg-[#0b2918] text-white py-12 mt-16">
         <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-4 gap-8">
           <div>
@@ -261,12 +258,12 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Botón flotante de WhatsApp */}
+      {/* Boton flotante de WhatsApp */}
       <button className="fixed bottom-6 right-6 bg-[#25d366] hover:bg-[#20bd5a] text-white p-4 rounded-full shadow-2xl z-40 transition-transform hover:scale-105">
         <MessageCircle size={28} />
       </button>
 
-      {/* MODAL DE LOGIN INTEGRADO */}
+      {/* Login */}
       {isLoginOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
