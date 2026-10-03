@@ -8,38 +8,44 @@ export default function ProfilePage() {
   const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
-    
-    const mockBackendResponse = {
-      tipoUsuario: "CLIENTE", 
-      usuario: {
-        email: "admin@coop.com",
-      },
-      perfil: {
-        nombre: "Carlos",
-        apellido: "Gómez",
-        telefono: "353111222",
-        activo: true,
-        domicilio: { calle: "San Martín", numero: 450, barrio: "Centro" },
-        suscripciones: [
-          { servicio: "Internet Fibra 1000 Megas", estado: "Activa" },
-          { servicio: "Televisión Digital", estado: "Activa" }
-        ],
-        tickets: [
-          { id: 1042, descripcion: "Sin conexión tras la tormenta", estado: "En Progreso" }
-        ],
-        // Datos exclusivos si es EMPLEADO
-        especialidad: "Técnico de Redes" 
+    const fetchPerfilReal = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:8080/api/clientes/perfil-actual', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data);
+        } else {
+          console.error("No se pudo cargar la información del perfil");
+        }
+      } catch (error) {
+        console.error("Error de red al obtener el perfil:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    setTimeout(() => {
-      setUserData(mockBackendResponse);
-      setLoading(false);
-    }, 500);
+    fetchPerfilReal();
   }, []);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50">Cargando perfil...</div>;
+  }
+
+  if (!userData) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
+        <p className="text-gray-600">No se encontró información de perfil para este usuario.</p>
+        <button onClick={() => navigate('/')} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium">
+          Volver al Inicio
+        </button>
+      </div>
+    );
   }
 
   const { tipoUsuario, usuario, perfil } = userData;
@@ -94,7 +100,7 @@ export default function ProfilePage() {
           {/* COLUMNA DERECHA: INFORMACIÓN DEL ROL */}
           <div className="md:col-span-2 space-y-6">
             
-            {/* INFORMACIÓN PERSONAL (Común para ambos) */}
+            {/* INFORMACIÓN PERSONAL */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Información Personal</h3>
               <div className="grid grid-cols-2 gap-6">
@@ -117,31 +123,23 @@ export default function ProfilePage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3 col-span-2">
-                      <MapPin className="text-green-600 mt-1" size={18} />
-                      <div>
-                        <p className="text-xs text-gray-500">Domicilio de Servicio</p>
-                        <p className="text-sm font-medium text-gray-900">
-                          {perfil.domicilio.calle} {perfil.domicilio.numero}, B° {perfil.domicilio.barrio}
-                        </p>
+                    {perfil.domicilio && (
+                      <div className="flex items-start gap-3 col-span-2">
+                        <MapPin className="text-green-600 mt-1" size={18} />
+                        <div>
+                          <p className="text-xs text-gray-500">Domicilio de Servicio</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {perfil.domicilio.calle} {perfil.domicilio.numero}, B° {perfil.domicilio.barrio?.nombre || 'Centro'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </>
-                )}
-
-                {tipoUsuario === 'EMPLEADO' && (
-                  <div className="flex items-start gap-3">
-                    <Briefcase className="text-green-600 mt-1" size={18} />
-                    <div>
-                      <p className="text-xs text-gray-500">Especialidad Técnica</p>
-                      <p className="text-sm font-medium text-gray-900">{perfil.especialidad}</p>
-                    </div>
-                  </div>
                 )}
               </div>
             </div>
 
-            {/* SECCIÓN EXCLUSIVA: CLIENTE (Suscripciones y Tickets) */}
+            {/* SECCIÓN SUSCRIPCIONES Y TICKETS */}
             {tipoUsuario === 'CLIENTE' && (
               <>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -149,12 +147,19 @@ export default function ProfilePage() {
                     <Rss size={16} /> Mis Suscripciones
                   </h3>
                   <div className="space-y-3">
-                    {perfil.suscripciones.map((sub: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
-                        <span className="text-sm font-medium text-gray-900">{sub.servicio}</span>
-                        <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">{sub.estado}</span>
-                      </div>
-                    ))}
+                    {(!perfil.suscripciones || perfil.suscripciones.filter((s: any) => !s.fechaBaja).length === 0) ? (
+                      <p className="text-sm text-gray-500 italic">No posees servicios activos actualmente.</p>
+                    ) : (
+                      perfil.suscripciones.filter((s: any) => !s.fechaBaja).map((sub: any) => (
+                        <div key={sub.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">{sub.servicio?.nombre}</span>
+                            <span className="text-xs text-gray-400 block">Alta: {sub.fechaAlta}</span>
+                          </div>
+                          <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">Activa</span>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -163,17 +168,21 @@ export default function ProfilePage() {
                     <Ticket size={16} /> Mis Tickets de Soporte
                   </h3>
                   <div className="space-y-3">
-                    {perfil.tickets.map((ticket: any, index: number) => (
-                      <div key={index} className="flex flex-col sm:flex-row justify-between sm:items-center p-3 bg-gray-50 rounded-lg border border-gray-100 gap-2">
-                        <div>
-                          <span className="text-xs text-gray-500 font-mono">#{ticket.id}</span>
-                          <p className="text-sm font-medium text-gray-900">{ticket.descripcion}</p>
+                    {(!perfil.tickets || perfil.tickets.length === 0) ? (
+                      <p className="text-sm text-gray-500 italic">No tienes tickets de soporte registrados.</p>
+                    ) : (
+                      perfil.tickets.map((ticket: any) => (
+                        <div key={ticket.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-3 bg-gray-50 rounded-lg border border-gray-100 gap-2">
+                          <div>
+                            <span className="text-xs text-gray-500 font-mono">#{ticket.id}</span>
+                            <p className="text-sm font-medium text-gray-900">{ticket.descripcion}</p>
+                          </div>
+                          <span className="text-xs font-bold text-orange-700 bg-orange-100 px-2 py-1 rounded self-start sm:self-auto whitespace-nowrap">
+                            {ticket.estado}
+                          </span>
                         </div>
-                        <span className="text-xs font-bold text-orange-700 bg-orange-100 px-2 py-1 rounded self-start sm:self-auto whitespace-nowrap">
-                          {ticket.estado}
-                        </span>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </>
