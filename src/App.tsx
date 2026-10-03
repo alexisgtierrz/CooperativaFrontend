@@ -1,14 +1,17 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
+import ProfilePage from './pages/ProfilePage';
+import AdminPanelPage from './pages/AdminPanelPage';
 
 function App() {
   return (
-    <>
-      <LandingPage />
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/perfil" element={<ProfilePage />} />
+        <Route path="/admin" element={<AdminPanelPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
