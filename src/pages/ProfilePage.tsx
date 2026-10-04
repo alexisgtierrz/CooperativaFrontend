@@ -1,196 +1,270 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Lock, Phone, MapPin, Briefcase, Ticket, Rss, Activity } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Activity,
+  CalendarClock,
+  ChevronRight,
+  IdCard,
+  Lock,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Pencil,
+  Phone,
+  Rss,
+  Ticket as TicketIcon,
+  User,
+} from 'lucide-react';
+import { Badge, EmptyState, LoadingState, PageHeader } from '../components/ui';
+import PerfilError from '../components/PerfilError';
+import { usePerfilActual } from '../hooks/usePerfilActual';
+import { estadoTicket, formatearFechaSimple, tonoEstadoTicket } from '../lib/format';
 
 export default function ProfilePage() {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchPerfilReal = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:8080/api/clientes/perfil-actual', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUserData(data);
-        } else {
-          console.error("No se pudo cargar la información del perfil");
-        }
-      } catch (error) {
-        console.error("Error de red al obtener el perfil:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPerfilReal();
-  }, []);
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50">Cargando perfil...</div>;
-  }
-
-  if (!userData) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
-        <p className="text-gray-600">No se encontró información de perfil para este usuario.</p>
-        <button onClick={() => navigate('/')} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium">
-          Volver al Inicio
-        </button>
-      </div>
-    );
-  }
-
-  const { tipoUsuario, usuario, perfil } = userData;
+  const { data: userData, loading, error, status, reload } = usePerfilActual();
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      {/* HEADER SIMPLIFICADO */}
-      <header className="bg-white px-8 py-4 flex items-center shadow-sm relative z-20">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-600 hover:text-green-600 font-medium transition-colors">
-          <ArrowLeft size={20} /> Volver al Inicio
-        </button>
-      </header>
+    <>
+      <PageHeader
+        eyebrow="Oficina Virtual"
+        title="Mi perfil"
+        description="Tus datos de asociado, tus servicios activos y el estado de tus reclamos."
+        crumbs={[{ label: 'Oficina Virtual' }, { label: 'Mi perfil' }]}
+        icon={<User size={28} />}
+      />
 
-      <main className="max-w-4xl mx-auto mt-8 px-4">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-8">Mi Perfil</h1>
+      <div className="container-site py-8 sm:py-12">
+        {loading ? (
+          <LoadingState label="Cargando perfil…" />
+        ) : !userData ? (
+          <PerfilError message={error || 'No se encontró información de perfil para este usuario.'} status={status} onRetry={reload} />
+        ) : (
+          <PerfilContenido data={userData} />
+        )}
+      </div>
+    </>
+  );
+}
 
-        <div className="grid md:grid-cols-3 gap-6">
-          
-          {/* COLUMNA IZQUIERDA: DATOS DE USUARIO Y CUENTA */}
-          <div className="md:col-span-1 space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
-              <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <User size={48} className="text-green-600" />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900">{perfil.nombre} {perfil.apellido}</h2>
-              <span className={`mt-2 px-3 py-1 text-xs font-bold rounded-full ${tipoUsuario === 'CLIENTE' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                {tipoUsuario}
-              </span>
-            </div>
+function PerfilContenido({ data }: { data: NonNullable<ReturnType<typeof usePerfilActual>['data']> }) {
+  const { tipoUsuario, usuario, perfil } = data;
+  const esCliente = tipoUsuario === 'CLIENTE';
+  const activas = (perfil.suscripciones ?? []).filter((s) => !s.fechaBaja);
+  const tickets = perfil.tickets ?? [];
+  const dom = perfil.domicilio;
+  const iniciales = `${perfil.nombre?.[0] ?? ''}${perfil.apellido?.[0] ?? ''}`.toUpperCase();
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Credenciales</h3>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Mail className="text-gray-400 mt-1" size={18} />
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm font-medium text-gray-900">{usuario.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Lock className="text-gray-400 mt-1" size={18} />
-                  <div>
-                    <p className="text-xs text-gray-500">Contraseña</p>
-                    <p className="text-sm font-medium text-gray-900">********</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      {/* Columna izquierda: identidad y credenciales */}
+      <div className="flex flex-col gap-6">
+        <div className="card flex flex-col items-center p-6 text-center sm:p-8">
+          <span className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-coop-green-soft font-display text-4xl font-bold text-coop-green">
+            {iniciales || <User size={44} aria-hidden="true" />}
+          </span>
+          <h2 className="text-2xl font-bold">
+            {perfil.nombre} {perfil.apellido}
+          </h2>
+          <div className="mt-2">
+            <Badge tone={esCliente ? 'blue' : 'gray'}>{tipoUsuario}</Badge>
           </div>
-
-          {/* COLUMNA DERECHA: INFORMACIÓN DEL ROL */}
-          <div className="md:col-span-2 space-y-6">
-            
-            {/* INFORMACIÓN PERSONAL */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Información Personal</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="flex items-start gap-3">
-                  <Phone className="text-green-600 mt-1" size={18} />
-                  <div>
-                    <p className="text-xs text-gray-500">Teléfono</p>
-                    <p className="text-sm font-medium text-gray-900">{perfil.telefono}</p>
-                  </div>
-                </div>
-                
-                {tipoUsuario === 'CLIENTE' && (
-                  <>
-                    <div className="flex items-start gap-3">
-                      <Activity className="text-green-600 mt-1" size={18} />
-                      <div>
-                        <p className="text-xs text-gray-500">Estado de Cuenta</p>
-                        <p className="text-sm font-medium text-gray-900">
-                          {perfil.activo ? <span className="text-green-600">Activo al día</span> : <span className="text-red-500">Suspendido</span>}
-                        </p>
-                      </div>
-                    </div>
-                    {perfil.domicilio && (
-                      <div className="flex items-start gap-3 col-span-2">
-                        <MapPin className="text-green-600 mt-1" size={18} />
-                        <div>
-                          <p className="text-xs text-gray-500">Domicilio de Servicio</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {perfil.domicilio.calle} {perfil.domicilio.numero}, B° {perfil.domicilio.barrio?.nombre || 'Centro'}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+          {esCliente && (
+            <div className="mt-5 w-full rounded-2xl bg-coop-ground p-4">
+              <p className="flex items-center justify-center gap-2 text-sm font-semibold text-coop-muted">
+                <IdCard size={16} aria-hidden="true" /> N° de asociado
+              </p>
+              <p className="font-display text-4xl font-bold text-coop-navy">{String(perfil.id).padStart(5, '0')}</p>
             </div>
+          )}
+        </div>
 
-            {/* SECCIÓN SUSCRIPCIONES Y TICKETS */}
-            {tipoUsuario === 'CLIENTE' && (
+        <div className="card p-6">
+          <CardTitle>Credenciales</CardTitle>
+          <dl className="space-y-4">
+            <Dato icon={<Mail size={18} />} label="Email" value={usuario.email} />
+            <Dato icon={<Lock size={18} />} label="Contraseña" value="********" />
+          </dl>
+        </div>
+
+        <nav aria-label="Accesos de la Oficina Virtual" className="card overflow-hidden">
+          <AccesoFila to="/vencimientos" icon={<CalendarClock size={20} />} label="Próximos vencimientos" />
+          <AccesoFila to="/reclamos" icon={<MessageSquare size={20} />} label="Mis reclamos" />
+          <AccesoFila to="/reclamos?nuevo=1" icon={<TicketIcon size={20} />} label="Iniciar un reclamo" last />
+        </nav>
+      </div>
+
+      {/* Columna derecha: datos del rol */}
+      <div className="flex flex-col gap-6 lg:col-span-2">
+        <section className="card p-6" aria-labelledby="info-personal">
+          <CardTitle id="info-personal">Información personal</CardTitle>
+          <dl className="grid gap-5 sm:grid-cols-2">
+            <Dato icon={<Phone size={18} />} label="Teléfono" value={perfil.telefono || '—'} accent />
+            {esCliente && (
               <>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <Rss size={16} /> Mis Suscripciones
-                  </h3>
-                  <div className="space-y-3">
-                    {(!perfil.suscripciones || perfil.suscripciones.filter((s: any) => !s.fechaBaja).length === 0) ? (
-                      <p className="text-sm text-gray-500 italic">No posees servicios activos actualmente.</p>
+                <Dato
+                  icon={<Activity size={18} />}
+                  label="Estado de cuenta"
+                  value={
+                    perfil.activo ? (
+                      <span className="text-coop-green">Activo al día</span>
                     ) : (
-                      perfil.suscripciones.filter((s: any) => !s.fechaBaja).map((sub: any) => (
-                        <div key={sub.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
-                          <div>
-                            <span className="text-sm font-medium text-gray-900">{sub.servicio?.nombre}</span>
-                            <span className="text-xs text-gray-400 block">Alta: {sub.fechaAlta}</span>
-                          </div>
-                          <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">Activa</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <Ticket size={16} /> Mis Tickets de Soporte
-                  </h3>
-                  <div className="space-y-3">
-                    {(!perfil.tickets || perfil.tickets.length === 0) ? (
-                      <p className="text-sm text-gray-500 italic">No tienes tickets de soporte registrados.</p>
-                    ) : (
-                      perfil.tickets.map((ticket: any) => (
-                        <div key={ticket.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-3 bg-gray-50 rounded-lg border border-gray-100 gap-2">
-                          <div>
-                            <span className="text-xs text-gray-500 font-mono">#{ticket.id}</span>
-                            <p className="text-sm font-medium text-gray-900">{ticket.descripcion}</p>
-                          </div>
-                          <span className="text-xs font-bold text-orange-700 bg-orange-100 px-2 py-1 rounded self-start sm:self-auto whitespace-nowrap">
-                            {ticket.estado}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                      <span className="text-red-600">Suspendido</span>
+                    )
+                  }
+                  accent
+                />
+                {perfil.dni && <Dato icon={<IdCard size={18} />} label="DNI" value={perfil.dni} accent />}
+                {perfil.email && <Dato icon={<Mail size={18} />} label="Email de contacto" value={perfil.email} accent />}
+                {dom && (
+                  <Dato
+                      className="sm:col-span-2"
+                      icon={<MapPin size={18} />}
+                      label="Domicilio de servicio"
+                      value={
+                        <>
+                          {dom.calle} {dom.numero}
+                          {dom.piso ? `, piso ${dom.piso}` : ''}
+                          {dom.departamento ? ` ${dom.departamento}` : ''}, B° {dom.barrio?.nombre || 'Centro'}
+                          {dom.barrio?.localidad?.nombre ? ` – ${dom.barrio.localidad.nombre}` : ''}
+                        </>
+                      }
+                      accent
+                    />
+                )}
               </>
             )}
-
+          </dl>
+          <div className="mt-6 flex flex-col gap-3 rounded-xl border border-coop-line-soft bg-coop-ground p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-start gap-2 text-[15px] text-coop-muted">
+              <Pencil size={18} className="mt-0.5 shrink-0 text-coop-navy" aria-hidden="true" />
+              ¿Cambiaron tus datos? Pedí la actualización y la cargamos por vos.
+            </p>
+            <Link to="/contacto?asunto=Actualizar%20mis%20datos" className="btn-outline whitespace-nowrap px-4 py-2">
+              Actualizar datos
+            </Link>
           </div>
-        </div>
-      </main>
+        </section>
+
+        {esCliente && (
+          <>
+            <section className="card p-6" aria-labelledby="mis-suscripciones">
+              <CardTitle id="mis-suscripciones" icon={<Rss size={16} />}>
+                Mis suscripciones
+              </CardTitle>
+              {activas.length === 0 ? (
+                <p className="italic text-coop-muted">No tenés servicios activos actualmente.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {activas.map((sub) => (
+                    <li
+                      key={sub.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-coop-line-soft bg-coop-ground px-4 py-3"
+                    >
+                      <div>
+                        <span className="font-semibold">{sub.servicio?.nombre}</span>
+                        <span className="block text-sm text-coop-muted">Alta: {formatearFechaSimple(sub.fechaAlta)}</span>
+                      </div>
+                      <Badge tone="green">Activa</Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="card p-6" aria-labelledby="mis-tickets">
+              <div className="flex items-start justify-between gap-3">
+                <CardTitle id="mis-tickets" icon={<TicketIcon size={16} />}>
+                  Mis tickets de soporte
+                </CardTitle>
+                {tickets.length > 0 && (
+                  <Link to="/reclamos" className="link text-sm">
+                    Ver todos
+                  </Link>
+                )}
+              </div>
+              {tickets.length === 0 ? (
+                <EmptyState
+                  icon={<TicketIcon size={28} />}
+                  title="No tenés reclamos registrados"
+                  action={
+                    <Link to="/reclamos?nuevo=1" className="btn-primary">
+                      Iniciar un reclamo
+                    </Link>
+                  }
+                />
+              ) : (
+                <ul className="space-y-3">
+                  {tickets.slice(0, 4).map((ticket) => {
+                    const estado = estadoTicket(ticket);
+                    return (
+                      <li
+                        key={ticket.id}
+                        className="flex flex-col gap-2 rounded-xl border border-coop-line-soft bg-coop-ground px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <span className="font-mono text-xs text-coop-muted">#{ticket.id}</span>
+                          <p className="font-medium">{ticket.descripcion}</p>
+                        </div>
+                        <Badge tone={tonoEstadoTicket(estado)}>{estado}</Badge>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          </>
+        )}
+      </div>
     </div>
+  );
+}
+
+function CardTitle({ children, id, icon }: { children: ReactNode; id?: string; icon?: ReactNode }) {
+  return (
+    <h3 id={id} className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-coop-muted">
+      {icon}
+      {children}
+    </h3>
+  );
+}
+
+function Dato({
+  icon,
+  label,
+  value,
+  accent = false,
+  className = '',
+}: {
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+  accent?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={`flex min-w-0 items-start gap-3 ${className}`}>
+      <span className={`mt-0.5 ${accent ? 'text-coop-green' : 'text-coop-muted'}`} aria-hidden="true">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <dt className="text-xs text-coop-muted">{label}</dt>
+        <dd className="break-words font-semibold">{value}</dd>
+      </div>
+    </div>
+  );
+}
+
+function AccesoFila({ to, icon, label, last = false }: { to: string; icon: ReactNode; label: string; last?: boolean }) {
+  return (
+    <Link
+      to={to}
+      className={`flex min-h-[56px] items-center gap-3 px-5 font-semibold hover:bg-coop-ground ${last ? '' : 'border-b border-coop-line-soft'}`}
+    >
+      <span className="text-coop-green" aria-hidden="true">
+        {icon}
+      </span>
+      <span className="flex-1">{label}</span>
+      <ChevronRight size={18} className="text-[#8A97A5]" aria-hidden="true" />
+    </Link>
   );
 }

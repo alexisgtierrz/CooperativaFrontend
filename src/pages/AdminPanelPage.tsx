@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, UserPlus, Shield, PlusCircle, Edit, Trash2, Plus, Search } from 'lucide-react';
+import React, { useState, useEffect, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Edit, LogOut, Plus, PlusCircle, Search, Shield, Trash2, UserPlus, Users } from 'lucide-react';
+import Logo from '../components/layout/Logo';
+import { Badge, EmptyState } from '../components/ui';
+import { apiFetch } from '../lib/api';
+import { useAuth } from '../context/auth-context';
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- se mantienen los tipos `any` del panel original */
+
+type Tab = 'clientes' | 'usuarios';
 
 export default function AdminPanelPage() {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('clientes'); 
+  const { userEmail, logout, notify } = useAuth();
+  const [activeTab, setActiveTab] = useState<Tab>('clientes');
 
   const [showClientForm, setShowClientForm] = useState(false);
   const [showUserForm, setShowUserForm] = useState(false);
@@ -22,8 +30,70 @@ export default function AdminPanelPage() {
 
   const [suscripcionesForm, setSuscripcionesForm] = useState<any[]>([]);
   const [servicioSeleccionado, setServicioSeleccionado] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
+  // ---- Lecturas (mismos endpoints que el panel original) ----
+  const fetchClientes = async () => {
+    try {
+      const response = await apiFetch('/clientes');
+      if (response.ok) setClientes(await response.json());
+    } catch (error) {
+      console.error('Error al buscar clientes:', error);
+    }
+  };
+
+  const fetchServicios = async () => {
+    try {
+      const response = await apiFetch('/servicios');
+      if (response.ok) {
+        const data = await response.json();
+        setServiciosDisponibles(data);
+        if (data.length > 0) setServicioSeleccionado(String(data[0].id));
+      }
+    } catch (error) {
+      console.error('Error al buscar servicios:', error);
+    }
+  };
+
+  const fetchUsuarios = async () => {
+    try {
+      const response = await apiFetch('/usuarios');
+      if (response.ok) setUsuarios(await response.json());
+    } catch (error) {
+      console.error('Error al buscar usuarios:', error);
+    }
+  };
+
+  const fetchPerfiles = async () => {
+    try {
+      const response = await apiFetch('/perfiles');
+      if (response.ok) setPerfilesDisponibles(await response.json());
+    } catch (error) {
+      console.error('Error al buscar perfiles:', error);
+    }
+  };
+
+  const fetchLocalidades = async () => {
+    try {
+      const response = await apiFetch('/localidades');
+      if (response.ok) setLocalidadesDisponibles(await response.json());
+    } catch (error) {
+      console.error('Error al buscar localidades:', error);
+    }
+  };
+
+  const fetchBarrios = async () => {
+    try {
+      const response = await apiFetch('/barrios');
+      if (response.ok) setBarriosDisponibles(await response.json());
+    } catch (error) {
+      console.error('Error al buscar barrios:', error);
+    }
+  };
+
+  // Carga inicial: los set* se ejecutan después de cada await, no en el cuerpo del efecto
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchClientes();
     fetchServicios();
     fetchUsuarios();
@@ -32,76 +102,10 @@ export default function AdminPanelPage() {
     fetchBarrios();
   }, []);
 
-  const fetchClientes = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/api/clientes', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setClientes(data);
-      }
-    } catch (error) { console.error("Error al buscar clientes:", error); }
-  };
-
-  const fetchServicios = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/api/servicios', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setServiciosDisponibles(data);
-        if (data.length > 0) setServicioSeleccionado(String(data[0].id));
-      }
-    } catch (error) { console.error("Error al buscar servicios:", error); }
-  };
-
-  const fetchUsuarios = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/api/usuarios', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) setUsuarios(await response.json());
-    } catch (error) { console.error("Error al buscar usuarios:", error); }
-  };
-
-  const fetchPerfiles = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/api/perfiles', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) setPerfilesDisponibles(await response.json());
-    } catch (error) { console.error("Error al buscar perfiles:", error); }
-  };
-
-  const fetchLocalidades = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/api/localidades', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) setLocalidadesDisponibles(await response.json());
-    } catch (error) { console.error("Error al buscar localidades:", error); }
-  };
-
-  const fetchBarrios = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/api/barrios', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) setBarriosDisponibles(await response.json());
-    } catch (error) { console.error("Error al buscar barrios:", error); }
-  };
-
+  // ---- Clientes ----
   const handleNuevoCliente = () => {
     setClienteEnEdicion(null);
-    setSuscripcionesForm([]); 
+    setSuscripcionesForm([]);
     setLocalidadSeleccionada('');
     setShowClientForm(true);
   };
@@ -118,25 +122,25 @@ export default function AdminPanelPage() {
   };
 
   const handleAgregarSuscripcion = () => {
-    const servicio = serviciosDisponibles.find(s => s.id === Number(servicioSeleccionado));
+    const servicio = serviciosDisponibles.find((s) => s.id === Number(servicioSeleccionado));
     if (servicio) {
       const nuevaSub = {
         temporalId: Date.now(),
         fechaAlta: new Date().toISOString().split('T')[0],
-        servicio: servicio
+        servicio: servicio,
       };
       setSuscripcionesForm([...suscripcionesForm, nuevaSub]);
     }
   };
 
   const handleEliminarSuscripcion = (identificador: number) => {
-    setSuscripcionesForm(suscripcionesForm.filter(sub => (sub.id || sub.temporalId) !== identificador));
+    setSuscripcionesForm(suscripcionesForm.filter((sub) => (sub.id || sub.temporalId) !== identificador));
   };
 
   const handleGuardarCliente = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); 
+    e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
+
     const barrioIdValue = formData.get('barrioId');
 
     const domicilioData = {
@@ -146,17 +150,15 @@ export default function AdminPanelPage() {
       piso: formData.get('piso'),
       departamento: formData.get('departamento'),
       observaciones: formData.get('observaciones'),
-      barrio: barrioIdValue ? { id: Number(barrioIdValue) } : null
+      barrio: barrioIdValue ? { id: Number(barrioIdValue) } : null,
     };
 
-    const suscripcionesParaBackend = suscripcionesForm.map(sub => {
-      return {
-        id: sub.id, 
-        fechaAlta: sub.fechaAlta,
-        servicio: sub.servicio,
-        domicilio: sub.domicilio || domicilioData 
-      };
-    });
+    const suscripcionesParaBackend = suscripcionesForm.map((sub) => ({
+      id: sub.id,
+      fechaAlta: sub.fechaAlta,
+      servicio: sub.servicio,
+      domicilio: sub.domicilio || domicilioData,
+    }));
 
     const clienteData = {
       nombre: formData.get('nombre'),
@@ -167,24 +169,15 @@ export default function AdminPanelPage() {
       activo: true,
       usuario: clienteEnEdicion?.usuario || null,
       domicilio: domicilioData,
-      suscripciones: suscripcionesParaBackend
+      suscripciones: suscripcionesParaBackend,
     };
 
+    setGuardando(true);
     try {
-      const url = clienteEnEdicion 
-        ? `http://localhost:8080/api/clientes/${clienteEnEdicion.id}`
-        : 'http://localhost:8080/api/clientes';
+      const url = clienteEnEdicion ? `/clientes/${clienteEnEdicion.id}` : '/clientes';
       const method = clienteEnEdicion ? 'PUT' : 'POST';
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(clienteData)
-      });
+      const response = await apiFetch(url, { method, body: JSON.stringify(clienteData) });
 
       if (!response.ok) {
         throw new Error(`Error del servidor (${response.status})`);
@@ -192,14 +185,17 @@ export default function AdminPanelPage() {
 
       await fetchClientes();
       await fetchUsuarios();
-      alert('¡Cliente guardado exitosamente en la base de datos!');
-      setShowClientForm(false); 
+      notify('¡Cliente guardado exitosamente en la base de datos!');
+      setShowClientForm(false);
     } catch (error) {
-      alert("Hubo un error al comunicarse con el servidor. Revisá la consola.");
+      notify('Hubo un error al comunicarse con el servidor. Revisá la consola.', 'error');
       console.error(error);
+    } finally {
+      setGuardando(false);
     }
   };
 
+  // ---- Usuarios ----
   const handleGuardarUsuario = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -207,329 +203,552 @@ export default function AdminPanelPage() {
       email: formData.get('email'),
       password: formData.get('password'),
       activo: true,
-      perfil: { id: Number(formData.get('perfilId')) }
+      perfil: { id: Number(formData.get('perfilId')) },
     };
     const clienteIdAsociar = formData.get('clienteIdAsociar');
 
+    setGuardando(true);
     try {
-      const token = localStorage.getItem('token');
-      const responseUser = await fetch('http://localhost:8080/api/usuarios', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(usuarioData)
-      });
+      const responseUser = await apiFetch('/usuarios', { method: 'POST', body: JSON.stringify(usuarioData) });
 
       if (!responseUser.ok) throw new Error('Error al registrar el usuario');
       const nuevoUsuario = await responseUser.json();
 
       if (clienteIdAsociar) {
-        const clienteAFec = clientes.find(c => c.id === Number(clienteIdAsociar));
+        const clienteAFec = clientes.find((c) => c.id === Number(clienteIdAsociar));
         if (clienteAFec) {
           const clienteActualizado = { ...clienteAFec, usuario: { id: nuevoUsuario.id } };
-          await fetch(`http://localhost:8080/api/clientes/${clienteAFec.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(clienteActualizado)
-          });
+          await apiFetch(`/clientes/${clienteAFec.id}`, { method: 'PUT', body: JSON.stringify(clienteActualizado) });
         }
       }
 
       await fetchUsuarios();
       await fetchClientes();
-      alert('¡Usuario creado exitosamente!');
+      notify('¡Usuario creado exitosamente!');
       setShowUserForm(false);
     } catch (error) {
-      alert("Error al procesar la creación del usuario. Revisá la consola.");
+      notify('Error al procesar la creación del usuario. Revisá la consola.', 'error');
       console.error(error);
+    } finally {
+      setGuardando(false);
     }
   };
 
-  const clientesFiltrados = clientes.filter(cliente => {
+  const clientesFiltrados = clientes.filter((cliente) => {
     const texto = filtroBusquedaCliente.toLowerCase();
     const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`.toLowerCase();
     const dni = String(cliente.dni || '').toLowerCase();
     return nombreCompleto.includes(texto) || dni.includes(texto);
   });
 
-  const usuariosFiltrados = usuarios.filter(u => {
+  const usuariosFiltrados = usuarios.filter((u) => {
     const texto = filtroBusquedaUsuario.toLowerCase();
     return String(u.email || '').toLowerCase().includes(texto);
   });
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row font-sans">
-      
-      {/* SIDEBAR */}
-      <aside className="w-full md:w-64 bg-[#0b2918] text-white flex flex-col shadow-xl z-20">
-        <div className="p-6 border-b border-white/10">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-300 hover:text-white text-sm mb-6 transition-colors">
-            <ArrowLeft size={16} /> Volver al Inicio
-          </button>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Shield className="text-green-400" /> Admin Panel
-          </h2>
-        </div>
-        
-        <nav className="flex-1 p-4 space-y-2">
-          <button onClick={() => { setActiveTab('clientes'); setShowClientForm(false); setShowUserForm(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'clientes' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-white/10'}`}>
-            <Users size={18} /> Gestión de Clientes
-          </button>
-          <button onClick={() => { setActiveTab('usuarios'); setShowClientForm(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'usuarios' ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-white/10'}`}>
-            <UserPlus size={18} /> Gestión de Usuarios
-          </button>
-        </nav>
-      </aside>
+  const cambiarTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setShowClientForm(false);
+    setShowUserForm(false);
+  };
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 p-8 overflow-y-auto">
-        
-        {/* PESTAÑA CLIENTES */}
-        {activeTab === 'clientes' && (
-          <div>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-              <h1 className="text-3xl font-extrabold text-gray-900">Clientes</h1>
-              {!showClientForm && (
-                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                  <div className="relative flex-1 sm:w-72">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-                      <Search size={18} />
-                    </span>
-                    <input 
-                      type="text"
-                      placeholder="Buscar por nombre o DNI..."
+  const tabs: { id: Tab; label: string; corto: string; icon: typeof Users; count: number }[] = [
+    { id: 'clientes', label: 'Gestión de clientes', corto: 'Clientes', icon: Users, count: clientes.length },
+    { id: 'usuarios', label: 'Gestión de usuarios', corto: 'Usuarios', icon: UserPlus, count: usuarios.length },
+  ];
+
+  return (
+    <div className="flex min-h-screen flex-col bg-coop-ground">
+      {/* Barra superior del panel */}
+      <header className="sticky top-0 z-30 bg-coop-navy-dark text-white">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-4">
+            <Logo variant="light" />
+            <span className="hidden items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-bold text-coop-mint md:flex">
+              <Shield size={16} aria-hidden="true" /> Panel de administración
+            </span>
+          </div>
+          <div className="flex flex-none items-center gap-2">
+            <span className="hidden max-w-[220px] truncate text-sm text-[#A9BBCD] lg:block">{userEmail}</span>
+            <Link
+              to="/"
+              className="hidden min-h-[44px] items-center gap-2 rounded-[10px] px-3 font-semibold text-[#DCE7F2] hover:bg-white/10 hover:text-white sm:flex"
+            >
+              <ArrowLeft size={18} aria-hidden="true" /> Ver sitio
+            </Link>
+            <button
+              type="button"
+              onClick={logout}
+              className="flex h-11 items-center gap-2 rounded-[10px] px-3 font-semibold text-[#DCE7F2] hover:bg-white/10 hover:text-white"
+              aria-label="Cerrar sesión"
+            >
+              <LogOut size={18} aria-hidden="true" />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Pestañas en celular / tablet */}
+        <nav aria-label="Secciones del panel" className="flex gap-1 overflow-x-auto px-3 pb-2 lg:hidden">
+          {tabs.map(({ id, corto, icon: Icon, count }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => cambiarTab(id)}
+              aria-current={activeTab === id ? 'page' : undefined}
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-[10px] px-3 text-sm font-bold transition-colors ${
+                activeTab === id ? 'bg-coop-green text-white' : 'text-[#DCE7F2] hover:bg-white/10'
+              }`}
+            >
+              <Icon size={18} aria-hidden="true" /> {corto}
+              <span className="rounded-full bg-white/15 px-2 text-xs">{count}</span>
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      <div className="flex flex-1">
+        {/* Barra lateral (escritorio) */}
+        <aside className="hidden w-72 flex-none border-r border-coop-line bg-white lg:block">
+          <nav aria-label="Secciones del panel" className="sticky top-[69px] flex flex-col gap-1 p-4">
+            <p className="px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-wider text-coop-muted">Administración</p>
+            {tabs.map(({ id, label, icon: Icon, count }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => cambiarTab(id)}
+                aria-current={activeTab === id ? 'page' : undefined}
+                className={`flex min-h-[46px] items-center gap-3 rounded-[10px] px-3 text-left font-semibold transition-colors ${
+                  activeTab === id ? 'bg-coop-green text-white' : 'text-coop-ink hover:bg-coop-ground'
+                }`}
+              >
+                <Icon size={18} aria-hidden="true" />
+                <span className="flex-1">{label}</span>
+                <span className={`rounded-full px-2 text-xs ${activeTab === id ? 'bg-white/20' : 'bg-coop-ground text-coop-muted'}`}>
+                  {count}
+                </span>
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+          {/* ================= CLIENTES ================= */}
+          {activeTab === 'clientes' && (
+            <div>
+              <TituloSeccion
+                titulo={showClientForm ? (clienteEnEdicion ? `Modificar cliente #${clienteEnEdicion.id}` : 'Registrar nuevo cliente') : 'Clientes'}
+                subtitulo={showClientForm ? 'Datos personales, domicilio y servicios contratados.' : `${clientes.length} clientes registrados`}
+              >
+                {!showClientForm && (
+                  <>
+                    <Buscador
+                      id="buscar-cliente"
+                      label="Buscar cliente"
+                      placeholder="Buscar por nombre o DNI…"
                       value={filtroBusquedaCliente}
-                      onChange={(e) => setFiltroBusquedaCliente(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border rounded-lg bg-white text-sm outline-none focus:border-green-500 shadow-sm"
+                      onChange={setFiltroBusquedaCliente}
                     />
-                  </div>
-                  <button onClick={handleNuevoCliente} className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors whitespace-nowrap">
-                    <PlusCircle size={18} /> Nuevo Cliente
-                  </button>
+                    <button type="button" onClick={handleNuevoCliente} className="btn-primary whitespace-nowrap">
+                      <PlusCircle size={18} aria-hidden="true" /> Nuevo cliente
+                    </button>
+                  </>
+                )}
+              </TituloSeccion>
+
+              {showClientForm ? (
+                <div className="card p-5 sm:p-7">
+                  <form onSubmit={handleGuardarCliente} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Subtitulo>Datos personales</Subtitulo>
+                    <Campo label="Nombre" name="nombre" defaultValue={clienteEnEdicion?.nombre} required />
+                    <Campo label="Apellido" name="apellido" defaultValue={clienteEnEdicion?.apellido} required />
+                    <Campo label="DNI" name="dni" defaultValue={clienteEnEdicion?.dni} required inputMode="numeric" />
+                    <Campo label="Teléfono" name="telefono" defaultValue={clienteEnEdicion?.telefono} required type="tel" />
+                    <div className="md:col-span-2">
+                      <Campo
+                        label="Email"
+                        hint="(Se utilizará para crear la cuenta de usuario)"
+                        name="email"
+                        type="email"
+                        defaultValue={clienteEnEdicion?.email}
+                        required
+                      />
+                    </div>
+
+                    <Subtitulo>Domicilio</Subtitulo>
+                    <div>
+                      <label htmlFor="localidad" className="field-label">
+                        Localidad
+                      </label>
+                      <select
+                        id="localidad"
+                        value={localidadSeleccionada}
+                        onChange={(e) => setLocalidadSeleccionada(e.target.value)}
+                        className="field"
+                      >
+                        <option value="">Seleccione una localidad...</option>
+                        {localidadesDisponibles.map((loc: any) => (
+                          <option key={loc.id} value={loc.id}>
+                            {loc.nombre} ({loc.codigoPostal})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="barrioId" className="field-label">
+                        Barrio
+                      </label>
+                      <select
+                        id="barrioId"
+                        name="barrioId"
+                        defaultValue={clienteEnEdicion?.domicilio?.barrio?.id || ''}
+                        required
+                        className="field"
+                      >
+                        <option value="">Seleccione un barrio...</option>
+                        {barriosDisponibles
+                          .filter((barrio: any) => !localidadSeleccionada || barrio.localidad?.id === Number(localidadSeleccionada))
+                          .map((barrio: any) => (
+                            <option key={barrio.id} value={barrio.id}>
+                              {barrio.nombre}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <Campo label="Calle" name="calle" defaultValue={clienteEnEdicion?.domicilio?.calle || ''} required placeholder="Ej: San Martín" />
+                    <Campo label="Número" name="numero" type="number" defaultValue={clienteEnEdicion?.domicilio?.numero || ''} required placeholder="Ej: 150" />
+                    <Campo label="Piso" name="piso" defaultValue={clienteEnEdicion?.domicilio?.piso || ''} placeholder="Opcional" />
+                    <Campo label="Departamento" name="departamento" defaultValue={clienteEnEdicion?.domicilio?.departamento || ''} placeholder="Opcional" />
+                    <div className="md:col-span-2">
+                      <Campo
+                        label="Observaciones"
+                        name="observaciones"
+                        defaultValue={clienteEnEdicion?.domicilio?.observaciones || ''}
+                        placeholder="Casa con rejas negras"
+                      />
+                    </div>
+
+                    <Subtitulo>Suscripciones del cliente</Subtitulo>
+                    <div className="md:col-span-2">
+                      <div className="mb-4 space-y-2">
+                        {suscripcionesForm.filter((s: any) => !s.fechaBaja).length === 0 ? (
+                          <p className="text-sm italic text-coop-muted">No posee servicios activos.</p>
+                        ) : (
+                          suscripcionesForm
+                            .filter((s: any) => !s.fechaBaja)
+                            .map((sub) => (
+                              <div
+                                key={sub.id || sub.temporalId}
+                                className="flex items-center justify-between gap-3 rounded-xl border border-coop-line-soft bg-coop-ground px-4 py-2.5"
+                              >
+                                <div className="min-w-0">
+                                  <span className="font-bold">{sub.servicio.nombre}</span>
+                                  <span className="ml-2 text-xs text-coop-muted">Alta: {sub.fechaAlta}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEliminarSuscripcion(sub.id || sub.temporalId)}
+                                  className="flex h-10 w-10 flex-none items-center justify-center rounded-full text-red-600 hover:bg-red-50"
+                                  aria-label={`Quitar ${sub.servicio.nombre}`}
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
+                            ))
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <label htmlFor="servicio-agregar" className="sr-only">
+                          Servicio a agregar
+                        </label>
+                        <select
+                          id="servicio-agregar"
+                          value={servicioSeleccionado}
+                          onChange={(e) => setServicioSeleccionado(e.target.value)}
+                          className="field flex-1"
+                        >
+                          {serviciosDisponibles.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.nombre} - (${s.tarifa?.monto || 0})
+                            </option>
+                          ))}
+                        </select>
+                        <button type="button" onClick={handleAgregarSuscripcion} className="btn-navy">
+                          <Plus size={16} aria-hidden="true" /> Agregar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 flex flex-col-reverse gap-3 border-t border-coop-line-soft pt-5 sm:flex-row sm:justify-end md:col-span-2">
+                      <button type="button" onClick={() => setShowClientForm(false)} className="btn-outline">
+                        Cancelar
+                      </button>
+                      <button type="submit" disabled={guardando} className="btn-primary">
+                        {clienteEnEdicion ? 'Guardar cambios' : 'Crear cliente'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div className="card overflow-hidden">
+                  {clientesFiltrados.length === 0 ? (
+                    <EmptyState icon={<Users size={28} />} title="No se encontraron clientes." />
+                  ) : (
+                    <>
+                      {/* Tabla (tablet y escritorio) */}
+                      <table className="hidden w-full border-collapse text-left md:table">
+                        <thead>
+                          <tr className="bg-coop-ground text-xs uppercase tracking-wider text-coop-muted">
+                            <th className="px-5 py-3">ID</th>
+                            <th className="px-5 py-3">Cliente</th>
+                            <th className="px-5 py-3">DNI</th>
+                            <th className="px-5 py-3">Cuenta asociada</th>
+                            <th className="px-5 py-3 text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-coop-line-soft">
+                          {clientesFiltrados.map((cliente) => (
+                            <tr key={cliente.id} className="hover:bg-coop-ground/60">
+                              <td className="px-5 py-3.5 font-mono text-sm text-coop-muted">{cliente.id}</td>
+                              <td className="px-5 py-3.5 font-semibold">
+                                {cliente.nombre} {cliente.apellido}
+                              </td>
+                              <td className="px-5 py-3.5 text-coop-muted">{cliente.dni}</td>
+                              <td className="px-5 py-3.5 text-sm">
+                                {cliente.usuario?.email ? (
+                                  <span className="text-coop-navy">{cliente.usuario.email}</span>
+                                ) : (
+                                  <span className="italic text-coop-muted">Sin cuenta</span>
+                                )}
+                              </td>
+                              <td className="px-5 py-3.5 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditarCliente(cliente)}
+                                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg px-3 font-semibold text-coop-navy hover:bg-coop-blue-soft"
+                                >
+                                  <Edit size={15} aria-hidden="true" /> Editar
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      {/* Tarjetas (celular) */}
+                      <ul className="divide-y divide-coop-line-soft md:hidden">
+                        {clientesFiltrados.map((cliente) => (
+                          <li key={cliente.id} className="flex items-center gap-3 p-4">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold">
+                                {cliente.nombre} {cliente.apellido}
+                              </p>
+                              <p className="text-sm text-coop-muted">
+                                #{cliente.id} · DNI {cliente.dni}
+                              </p>
+                              <p className="truncate text-sm">
+                                {cliente.usuario?.email ? (
+                                  <span className="text-coop-navy">{cliente.usuario.email}</span>
+                                ) : (
+                                  <span className="italic text-coop-muted">Sin cuenta</span>
+                                )}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleEditarCliente(cliente)}
+                              className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border border-coop-line-strong text-coop-navy"
+                              aria-label={`Editar a ${cliente.nombre} ${cliente.apellido}`}
+                            >
+                              <Edit size={18} />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
                 </div>
               )}
             </div>
+          )}
 
-            {showClientForm ? (
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold mb-4 border-b pb-2">
-                  {clienteEnEdicion ? `Modificar Cliente #${clienteEnEdicion.id}` : 'Registrar Nuevo Cliente'}
-                </h3>
-                
-                <form onSubmit={handleGuardarCliente} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className="block text-sm text-gray-600 mb-1">Nombre</label><input type="text" name="nombre" defaultValue={clienteEnEdicion?.nombre} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
-                  <div><label className="block text-sm text-gray-600 mb-1">Apellido</label><input type="text" name="apellido" defaultValue={clienteEnEdicion?.apellido} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
-                  <div><label className="block text-sm text-gray-600 mb-1">DNI</label><input type="text" name="dni" defaultValue={clienteEnEdicion?.dni} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
-                  <div><label className="block text-sm text-gray-600 mb-1">Teléfono</label><input type="text" name="telefono" defaultValue={clienteEnEdicion?.telefono} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
-                  
-                  <div className="md:col-span-2"><label className="block text-sm text-gray-600 mb-1">Email <span className="text-xs text-gray-400 font-normal">(Se utilizará para crear la cuenta de usuario)</span></label><input type="email" name="email" defaultValue={clienteEnEdicion?.email} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
-                  
-                  <div className="md:col-span-2 mt-4"><h4 className="font-bold text-gray-700">Domicilio</h4></div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Localidad</label>
-                    <select 
-                      value={localidadSeleccionada}
-                      onChange={(e) => setLocalidadSeleccionada(e.target.value)}
-                      className="w-full border rounded p-2 outline-none focus:border-green-500 bg-white text-sm"
-                    >
-                      <option value="">Seleccione una localidad...</option>
-                      {localidadesDisponibles.map((loc: any) => (
-                        <option key={loc.id} value={loc.id}>{loc.nombre} ({loc.codigoPostal})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Barrio</label>
-                    <select 
-                      name="barrioId"
-                      defaultValue={clienteEnEdicion?.domicilio?.barrio?.id || ''}
-                      required
-                      className="w-full border rounded p-2 outline-none focus:border-green-500 bg-white text-sm"
-                    >
-                      <option value="">Seleccione un barrio...</option>
-                      {barriosDisponibles
-                        .filter((barrio: any) => !localidadSeleccionada || barrio.localidad?.id === Number(localidadSeleccionada))
-                        .map((barrio: any) => (
-                          <option key={barrio.id} value={barrio.id}>{barrio.nombre}</option>
+          {/* ================= USUARIOS ================= */}
+          {activeTab === 'usuarios' && (
+            <div>
+              <TituloSeccion
+                titulo={showUserForm ? 'Registrar nuevo usuario (manual)' : 'Gestión de usuarios'}
+                subtitulo={showUserForm ? 'Credenciales de acceso y perfil del usuario.' : `${usuarios.length} usuarios registrados`}
+              >
+                {!showUserForm && (
+                  <>
+                    <Buscador
+                      id="buscar-usuario"
+                      label="Filtrar usuarios"
+                      placeholder="Filtrar por email…"
+                      value={filtroBusquedaUsuario}
+                      onChange={setFiltroBusquedaUsuario}
+                    />
+                    <button type="button" onClick={() => setShowUserForm(true)} className="btn-primary whitespace-nowrap">
+                      <PlusCircle size={18} aria-hidden="true" /> Crear usuario
+                    </button>
+                  </>
+                )}
+              </TituloSeccion>
+
+              {showUserForm ? (
+                <div className="card p-5 sm:p-7">
+                  <form onSubmit={handleGuardarUsuario} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <Campo label="Correo electrónico (email)" name="email" type="email" required placeholder="usuario@coop.com" />
+                    <Campo label="Contraseña" name="password" type="password" required placeholder="••••••••" autoComplete="new-password" />
+                    <div>
+                      <label htmlFor="perfilId" className="field-label">
+                        Perfil / Rol
+                      </label>
+                      <select id="perfilId" name="perfilId" required className="field">
+                        <option value="">Seleccione un perfil...</option>
+                        {perfilesDisponibles.map((p: any) => (
+                          <option key={p.id} value={p.id}>
+                            {p.nombre}
+                          </option>
                         ))}
-                    </select>
-                  </div>
-                  <div><label className="block text-sm text-gray-600 mb-1">Calle</label><input type="text" name="calle" defaultValue={clienteEnEdicion?.domicilio?.calle || ''} required className="w-full border rounded p-2 outline-none focus:border-green-500" placeholder="Ej: San Martín" /></div>
-                  <div><label className="block text-sm text-gray-600 mb-1">Número</label><input type="number" name="numero" defaultValue={clienteEnEdicion?.domicilio?.numero || ''} required className="w-full border rounded p-2 outline-none focus:border-green-500" placeholder="Ej: 150" /></div>
-                  <div><label className="block text-sm text-gray-600 mb-1">Piso</label><input type="text" name="piso" defaultValue={clienteEnEdicion?.domicilio?.piso || ''} className="w-full border rounded p-2 outline-none focus:border-green-500" placeholder="Opcional" /></div>
-                  <div><label className="block text-sm text-gray-600 mb-1">Departamento</label><input type="text" name="departamento" defaultValue={clienteEnEdicion?.domicilio?.departamento || ''} className="w-full border rounded p-2 outline-none focus:border-green-500" placeholder="Opcional" /></div>
-                  <div className="md:col-span-2"><label className="block text-sm text-gray-600 mb-1">Observaciones</label><input type="text" name="observaciones" defaultValue={clienteEnEdicion?.domicilio?.observaciones || ''} className="w-full border rounded p-2 outline-none focus:border-green-500" placeholder="Casa con rejas negras" /></div>
-
-                  <div className="md:col-span-2 mt-4 border-t pt-4">
-                    <h4 className="font-bold text-gray-700 mb-3">Suscripciones del Cliente</h4>
-                    <div className="space-y-2 mb-4">
-                      {suscripcionesForm.filter((s: any) => !s.fechaBaja).length === 0 ? (
-                        <p className="text-sm text-gray-500 italic">No posee servicios activos.</p>
-                      ) : (
-                        suscripcionesForm.filter((s: any) => !s.fechaBaja).map((sub) => (
-                          <div key={sub.id || sub.temporalId} className="flex justify-between items-center bg-gray-50 border p-3 rounded-lg">
-                            <div>
-                              <span className="font-bold text-sm text-gray-800">{sub.servicio.nombre}</span>
-                              <span className="text-xs text-gray-500 ml-2">Alta: {sub.fechaAlta}</span>
-                            </div>
-                            <button type="button" onClick={() => handleEliminarSuscripcion(sub.id || sub.temporalId)} className="text-red-500 hover:text-red-700 p-1 rounded-full"><Trash2 size={18} /></button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <select value={servicioSeleccionado} onChange={(e) => setServicioSeleccionado(e.target.value)} className="flex-1 border rounded p-2 outline-none focus:border-green-500 bg-white text-sm">
-                        {serviciosDisponibles.map(s => (<option key={s.id} value={s.id}>{s.nombre} - (${s.tarifa?.monto || 0})</option>))}
                       </select>
-                      <button type="button" onClick={handleAgregarSuscripcion} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded flex items-center gap-1 text-sm font-medium"><Plus size={16} /> Agregar</button>
                     </div>
-                  </div>
+                    <div>
+                      <label htmlFor="clienteIdAsociar" className="field-label">
+                        Asignar a un cliente <span className="font-normal text-coop-muted">(opcional)</span>
+                      </label>
+                      <select id="clienteIdAsociar" name="clienteIdAsociar" className="field">
+                        <option value="">No asociar a ningún cliente</option>
+                        {clientes
+                          .filter((c) => !c.usuario)
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.nombre} {c.apellido} (DNI: {c.dni})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <div className="mt-2 flex flex-col-reverse gap-3 border-t border-coop-line-soft pt-5 sm:flex-row sm:justify-end md:col-span-2">
+                      <button type="button" onClick={() => setShowUserForm(false)} className="btn-outline">
+                        Cancelar
+                      </button>
+                      <button type="submit" disabled={guardando} className="btn-primary">
+                        Guardar usuario
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div className="card overflow-hidden">
+                  {usuariosFiltrados.length === 0 ? (
+                    <EmptyState icon={<UserPlus size={28} />} title="No se encontraron usuarios." />
+                  ) : (
+                    <>
+                      <table className="hidden w-full border-collapse text-left md:table">
+                        <thead>
+                          <tr className="bg-coop-ground text-xs uppercase tracking-wider text-coop-muted">
+                            <th className="px-5 py-3">ID</th>
+                            <th className="px-5 py-3">Email</th>
+                            <th className="px-5 py-3">Perfil / Rol</th>
+                            <th className="px-5 py-3">Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-coop-line-soft">
+                          {usuariosFiltrados.map((u: any) => (
+                            <tr key={u.id} className="hover:bg-coop-ground/60">
+                              <td className="px-5 py-3.5 font-mono text-sm text-coop-muted">{u.id}</td>
+                              <td className="px-5 py-3.5 font-semibold">{u.email}</td>
+                              <td className="px-5 py-3.5 text-coop-muted">{u.perfil?.nombre || 'Usuario'}</td>
+                              <td className="px-5 py-3.5">
+                                {u.activo ? <Badge tone="green">Activo</Badge> : <Badge tone="red">Inactivo</Badge>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
 
-                  <div className="md:col-span-2 mt-6 flex justify-end gap-3 border-t pt-4">
-                    <button type="button" onClick={() => setShowClientForm(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancelar</button>
-                    <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold shadow-lg">{clienteEnEdicion ? 'Guardar Cambios' : 'Crear Cliente'}</button>
-                  </div>
-                </form>
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                      <th className="p-4 border-b">ID</th>
-                      <th className="p-4 border-b">Cliente</th>
-                      <th className="p-4 border-b">DNI</th>
-                      <th className="p-4 border-b">Cuenta Asociada</th>
-                      <th className="p-4 border-b">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clientesFiltrados.length === 0 ? (
-                      <tr><td colSpan={5} className="p-6 text-center text-gray-400 italic">No se encontraron clientes.</td></tr>
-                    ) : (
-                      clientesFiltrados.map((cliente) => (
-                        <tr key={cliente.id} className="hover:bg-gray-50">
-                          <td className="p-4 border-b text-sm">{cliente.id}</td>
-                          <td className="p-4 border-b text-sm font-medium">{cliente.nombre} {cliente.apellido}</td>
-                          <td className="p-4 border-b text-sm text-gray-500">{cliente.dni}</td>
-                          <td className="p-4 border-b text-sm text-blue-600">
-                            {cliente.usuario?.email || <span className="text-gray-400 italic">Sin cuenta</span>}
-                          </td>
-                          <td className="p-4 border-b">
-                            <button onClick={() => handleEditarCliente(cliente)} className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"><Edit size={14} /> Editar</button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
+                      <ul className="divide-y divide-coop-line-soft md:hidden">
+                        {usuariosFiltrados.map((u: any) => (
+                          <li key={u.id} className="flex items-center justify-between gap-3 p-4">
+                            <div className="min-w-0">
+                              <p className="truncate font-semibold">{u.email}</p>
+                              <p className="text-sm text-coop-muted">
+                                #{u.id} · {u.perfil?.nombre || 'Usuario'}
+                              </p>
+                            </div>
+                            {u.activo ? <Badge tone="green">Activo</Badge> : <Badge tone="red">Inactivo</Badge>}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
 
-        {/* PESTAÑA USUARIOS */}
-        {activeTab === 'usuarios' && (
-           <div>
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-               <h1 className="text-3xl font-extrabold text-gray-900">Gestión de Usuarios</h1>
-               {!showUserForm && (
-                 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                   <div className="relative flex-1 sm:w-72">
-                     <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400"><Search size={18} /></span>
-                     <input 
-                       type="text"
-                       placeholder="Filtrar por email..."
-                       value={filtroBusquedaUsuario}
-                       onChange={(e) => setFiltroBusquedaUsuario(e.target.value)}
-                       className="w-full pl-10 pr-4 py-2 border rounded-lg bg-white text-sm outline-none focus:border-green-500 shadow-sm"
-                     />
-                   </div>
-                   <button onClick={() => setShowUserForm(true)} className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors whitespace-nowrap">
-                     <PlusCircle size={18} /> Crear Usuario
-                   </button>
-                 </div>
-               )}
-             </div>
+function TituloSeccion({ titulo, subtitulo, children }: { titulo: string; subtitulo: string; children?: ReactNode }) {
+  return (
+    <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <div>
+        <h1 className="font-display text-[34px] font-bold uppercase leading-none text-coop-navy sm:text-[40px]">{titulo}</h1>
+        <p className="mt-1 text-coop-muted">{subtitulo}</p>
+      </div>
+      {children && <div className="flex flex-col gap-3 sm:flex-row">{children}</div>}
+    </div>
+  );
+}
 
-             {showUserForm ? (
-               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                 <h3 className="text-lg font-bold mb-4 border-b pb-2">Registrar Nuevo Usuario (Manual)</h3>
-                 <form onSubmit={handleGuardarUsuario} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <div>
-                     <label className="block text-sm text-gray-600 mb-1">Correo Electrónico (Email)</label>
-                     <input type="email" name="email" required className="w-full border rounded p-2 outline-none focus:border-green-500" placeholder="usuario@coop.com" />
-                   </div>
-                   <div>
-                     <label className="block text-sm text-gray-600 mb-1">Contraseña</label>
-                     <input type="password" name="password" required className="w-full border rounded p-2 outline-none focus:border-green-500" placeholder="••••••••" />
-                   </div>
-                   <div>
-                     <label className="block text-sm text-gray-600 mb-1">Perfil / Rol</label>
-                     <select name="perfilId" required className="w-full border rounded p-2 outline-none focus:border-green-500 bg-white text-sm">
-                       <option value="">Seleccione un perfil...</option>
-                       {perfilesDisponibles.map((p: any) => (
-                         <option key={p.id} value={p.id}>{p.nombre}</option>
-                       ))}
-                     </select>
-                   </div>
-                   <div>
-                     <label className="block text-sm text-gray-600 mb-1">Asignar a un Cliente (Opcional)</label>
-                     <select name="clienteIdAsociar" className="w-full border rounded p-2 outline-none focus:border-green-500 bg-white text-sm">
-                       <option value="">No asociar a ningún cliente</option>
-                       {clientes.filter(c => !c.usuario).map(c => (
-                         <option key={c.id} value={c.id}>{c.nombre} {c.apellido} (DNI: {c.dni})</option>
-                       ))}
-                     </select>
-                   </div>
-                   <div className="md:col-span-2 mt-6 flex justify-end gap-3 border-t pt-4">
-                     <button type="button" onClick={() => setShowUserForm(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancelar</button>
-                     <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold shadow-lg">Guardar Usuario</button>
-                   </div>
-                 </form>
-               </div>
-             ) : (
-               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                 <table className="w-full text-left border-collapse">
-                   <thead>
-                     <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                       <th className="p-4 border-b">ID</th>
-                       <th className="p-4 border-b">Email</th>
-                       <th className="p-4 border-b">Perfil / Rol</th>
-                       <th className="p-4 border-b">Estado</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {usuariosFiltrados.length === 0 ? (
-                       <tr><td colSpan={4} className="p-6 text-center text-gray-400 italic">No se encontraron usuarios.</td></tr>
-                     ) : (
-                       usuariosFiltrados.map((u: any) => (
-                         <tr key={u.id} className="hover:bg-gray-50">
-                           <td className="p-4 border-b text-sm">{u.id}</td>
-                           <td className="p-4 border-b text-sm font-medium">{u.email}</td>
-                           <td className="p-4 border-b text-sm text-gray-600">{u.perfil?.nombre || 'Usuario'}</td>
-                           <td className="p-4 border-b text-sm">
-                             {u.activo ? (
-                               <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Activo</span>
-                             ) : (
-                               <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Inactivo</span>
-                             )}
-                           </td>
-                         </tr>
-                       ))
-                     )}
-                   </tbody>
-                 </table>
-               </div>
-             )}
-           </div>
-        )}
-      </main>
+function Buscador({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="relative sm:w-72">
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-coop-muted" aria-hidden="true" />
+      <input id={id} type="search" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} className="field pl-10" />
+    </div>
+  );
+}
+
+function Subtitulo({ children }: { children: ReactNode }) {
+  return (
+    <h2 className="mt-2 border-b border-coop-line-soft pb-2 text-sm font-bold uppercase tracking-wider text-coop-green first:mt-0 md:col-span-2">
+      {children}
+    </h2>
+  );
+}
+
+function Campo({
+  label,
+  hint,
+  name,
+  ...props
+}: { label: string; hint?: string; name: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const id = `campo-${name}`;
+  return (
+    <div>
+      <label htmlFor={id} className="field-label">
+        {label} {hint && <span className="text-xs font-normal text-coop-muted">{hint}</span>}
+      </label>
+      <input id={id} name={name} type={props.type ?? 'text'} {...props} className="field" />
     </div>
   );
 }
