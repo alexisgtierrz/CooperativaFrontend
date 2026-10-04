@@ -13,15 +13,14 @@ export default function AdminPanelPage() {
   // ESTADOS PARA LOS DATOS REALES DE LA BASE DE DATOS Y BÚSQUEDA
   const [clientes, setClientes] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
+  const [perfilesDisponibles, setPerfilesDisponibles] = useState<any[]>([]);
   const [filtroBusquedaCliente, setFiltroBusquedaCliente] = useState('');
   const [filtroBusquedaUsuario, setFiltroBusquedaUsuario] = useState('');
   const [serviciosDisponibles, setServiciosDisponibles] = useState<any[]>([]);
-  const [usuariosDisponibles, setUsuariosDisponibles] = useState<any[]>([]);
   const [localidadesDisponibles, setLocalidadesDisponibles] = useState<any[]>([]);
   const [barriosDisponibles, setBarriosDisponibles] = useState<any[]>([]);
   const [localidadSeleccionada, setLocalidadSeleccionada] = useState<string>('');
 
-  // ESTADO TEMPORAL PARA LAS SUSCRIPCIONES DEL FORMULARIO
   const [suscripcionesForm, setSuscripcionesForm] = useState<any[]>([]);
   const [servicioSeleccionado, setServicioSeleccionado] = useState('');
 
@@ -29,6 +28,7 @@ export default function AdminPanelPage() {
     fetchClientes();
     fetchServicios();
     fetchUsuarios();
+    fetchPerfiles();
     fetchLocalidades();
     fetchBarrios();
   }, []);
@@ -43,9 +43,7 @@ export default function AdminPanelPage() {
         const data = await response.json();
         setClientes(data);
       }
-    } catch (error) {
-      console.error("Error de red al buscar clientes:", error);
-    }
+    } catch (error) { console.error("Error al buscar clientes:", error); }
   };
 
   const fetchServicios = async () => {
@@ -59,9 +57,7 @@ export default function AdminPanelPage() {
         setServiciosDisponibles(data);
         if (data.length > 0) setServicioSeleccionado(String(data[0].id));
       }
-    } catch (error) {
-      console.error("Error de red al buscar servicios:", error);
-    }
+    } catch (error) { console.error("Error al buscar servicios:", error); }
   };
 
   const fetchUsuarios = async () => {
@@ -70,14 +66,18 @@ export default function AdminPanelPage() {
       const response = await fetch('http://localhost:8080/api/usuarios', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setUsuarios(data);
-        setUsuariosDisponibles(data);
-      }
-    } catch (error) {
-      console.error("Error de red al buscar usuarios:", error);
-    }
+      if (response.ok) setUsuarios(await response.json());
+    } catch (error) { console.error("Error al buscar usuarios:", error); }
+  };
+
+  const fetchPerfiles = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8080/api/perfiles', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) setPerfilesDisponibles(await response.json());
+    } catch (error) { console.error("Error al buscar perfiles:", error); }
   };
 
   const fetchLocalidades = async () => {
@@ -86,13 +86,8 @@ export default function AdminPanelPage() {
       const response = await fetch('http://localhost:8080/api/localidades', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setLocalidadesDisponibles(data);
-      }
-    } catch (error) {
-      console.error("Error de red al buscar localidades:", error);
-    }
+      if (response.ok) setLocalidadesDisponibles(await response.json());
+    } catch (error) { console.error("Error al buscar localidades:", error); }
   };
 
   const fetchBarrios = async () => {
@@ -101,13 +96,8 @@ export default function AdminPanelPage() {
       const response = await fetch('http://localhost:8080/api/barrios', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setBarriosDisponibles(data);
-      }
-    } catch (error) {
-      console.error("Error de red al buscar barrios:", error);
-    }
+      if (response.ok) setBarriosDisponibles(await response.json());
+    } catch (error) { console.error("Error al buscar barrios:", error); }
   };
 
   const handleNuevoCliente = () => {
@@ -148,7 +138,6 @@ export default function AdminPanelPage() {
     e.preventDefault(); 
     const formData = new FormData(e.currentTarget);
     
-    const usuarioIdValue = formData.get('usuarioId');
     const barrioIdValue = formData.get('barrioId');
 
     const domicilioData = {
@@ -177,7 +166,8 @@ export default function AdminPanelPage() {
       telefono: String(formData.get('telefono')),
       email: formData.get('email'),
       activo: true,
-      usuario: usuarioIdValue ? { id: Number(usuarioIdValue) } : null,
+      // Si estamos editando y el cliente ya tenía un usuario, lo conservamos en la petición
+      usuario: clienteEnEdicion?.usuario || null,
       domicilio: domicilioData,
       suscripciones: suscripcionesParaBackend
     };
@@ -199,11 +189,11 @@ export default function AdminPanelPage() {
       });
 
       if (!response.ok) {
-        const errorDetail = await response.text();
-        throw new Error(`Error del servidor (${response.status}): ${errorDetail}`);
+        throw new Error(`Error del servidor (${response.status})`);
       }
 
       await fetchClientes();
+      await fetchUsuarios(); // Refrescamos usuarios para ver la cuenta recién creada automáticamente
       alert('¡Cliente guardado exitosamente en la base de datos!');
       setShowClientForm(false); 
     } catch (error) {
@@ -212,24 +202,20 @@ export default function AdminPanelPage() {
     }
   };
 
-  // GUARDAR NUEVO USUARIO Y ASIGNARLO A UN CLIENTE SI SE SELECCIONÓ
+  // Creación manual de usuarios (para empleados u otros usos)
   const handleGuardarUsuario = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-
     const usuarioData = {
       email: formData.get('email'),
       password: formData.get('password'),
       activo: true,
-      perfil: { id: Number(formData.get('perfilId')) || 3 } // Por defecto perfil estándar/cliente
+      perfil: { id: Number(formData.get('perfilId')) }
     };
-
     const clienteIdAsociar = formData.get('clienteIdAsociar');
 
     try {
       const token = localStorage.getItem('token');
-      
-      // 1. Crear el usuario
       const responseUser = await fetch('http://localhost:8080/api/usuarios', {
         method: 'POST',
         headers: {
@@ -239,21 +225,13 @@ export default function AdminPanelPage() {
         body: JSON.stringify(usuarioData)
       });
 
-      if (!responseUser.ok) {
-        throw new Error('Error al registrar el usuario');
-      }
-
+      if (!responseUser.ok) throw new Error('Error al registrar el usuario');
       const nuevoUsuario = await responseUser.json();
 
-      // 2. Si se seleccionó un cliente para asignarle este usuario, hacemos un PUT al cliente
       if (clienteIdAsociar) {
         const clienteAFec = clientes.find(c => c.id === Number(clienteIdAsociar));
         if (clienteAFec) {
-          const clienteActualizado = {
-            ...clienteAFec,
-            usuario: { id: nuevoUsuario.id }
-          };
-
+          const clienteActualizado = { ...clienteAFec, usuario: { id: nuevoUsuario.id } };
           await fetch(`http://localhost:8080/api/clientes/${clienteAFec.id}`, {
             method: 'PUT',
             headers: {
@@ -267,7 +245,7 @@ export default function AdminPanelPage() {
 
       await fetchUsuarios();
       await fetchClientes();
-      alert('¡Usuario creado y asignado exitosamente!');
+      alert('¡Usuario creado exitosamente!');
       setShowUserForm(false);
     } catch (error) {
       alert("Error al procesar la creación del usuario. Revisá la consola.");
@@ -351,22 +329,11 @@ export default function AdminPanelPage() {
                   <div><label className="block text-sm text-gray-600 mb-1">Apellido</label><input type="text" name="apellido" defaultValue={clienteEnEdicion?.apellido} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
                   <div><label className="block text-sm text-gray-600 mb-1">DNI</label><input type="text" name="dni" defaultValue={clienteEnEdicion?.dni} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
                   <div><label className="block text-sm text-gray-600 mb-1">Teléfono</label><input type="text" name="telefono" defaultValue={clienteEnEdicion?.telefono} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
-                  <div><label className="block text-sm text-gray-600 mb-1">Email</label><input type="email" name="email" defaultValue={clienteEnEdicion?.email} className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
                   
-                  <div className="md:col-span-2 mt-4"><h4 className="font-bold text-gray-700">Cuenta de Usuario (Login)</h4></div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm text-gray-600 mb-1">Asociar Usuario</label>
-                    <select 
-                      name="usuarioId" 
-                      defaultValue={clienteEnEdicion?.usuario?.id || ""} 
-                      className="w-full md:w-1/2 border rounded p-2 outline-none focus:border-green-500 bg-white text-sm"
-                    >
-                      <option value="">Sin usuario asociado</option>
-                      {usuariosDisponibles.map((u: any) => (
-                        <option key={u.id} value={u.id}>{u.email}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* Email ahora es obligatorio */}
+                  <div className="md:col-span-2"><label className="block text-sm text-gray-600 mb-1">Email <span className="text-xs text-gray-400 font-normal">(Se utilizará para crear la cuenta de usuario)</span></label><input type="email" name="email" defaultValue={clienteEnEdicion?.email} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
+                  
+                  {/* Eliminamos el selector manual de usuario aquí porque es automático */}
 
                   <div className="md:col-span-2 mt-4"><h4 className="font-bold text-gray-700">Domicilio</h4></div>
                   <div>
@@ -443,7 +410,7 @@ export default function AdminPanelPage() {
                       <th className="p-4 border-b">ID</th>
                       <th className="p-4 border-b">Cliente</th>
                       <th className="p-4 border-b">DNI</th>
-                      <th className="p-4 border-b">Servicios Activos</th>
+                      <th className="p-4 border-b">Cuenta Asociada</th>
                       <th className="p-4 border-b">Acciones</th>
                     </tr>
                   </thead>
@@ -456,10 +423,8 @@ export default function AdminPanelPage() {
                           <td className="p-4 border-b text-sm">{cliente.id}</td>
                           <td className="p-4 border-b text-sm font-medium">{cliente.nombre} {cliente.apellido}</td>
                           <td className="p-4 border-b text-sm text-gray-500">{cliente.dni}</td>
-                          <td className="p-4 border-b">
-                            {cliente.suscripciones?.filter((s: any) => !s.fechaBaja).length > 0 ? (
-                               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">{cliente.suscripciones.filter((s: any) => !s.fechaBaja).length} servicio(s)</span>
-                            ) : (<span className="text-gray-400 text-xs italic">Ninguno</span>)}
+                          <td className="p-4 border-b text-sm text-blue-600">
+                            {cliente.usuario?.email || <span className="text-gray-400 italic">Sin cuenta</span>}
                           </td>
                           <td className="p-4 border-b">
                             <button onClick={() => handleEditarCliente(cliente)} className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"><Edit size={14} /> Editar</button>
@@ -492,7 +457,7 @@ export default function AdminPanelPage() {
                      />
                    </div>
                    <button onClick={() => setShowUserForm(true)} className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors whitespace-nowrap">
-                     <PlusCircle size={18} /> Nuevo Usuario
+                     <PlusCircle size={18} /> Crear Usuario
                    </button>
                  </div>
                )}
@@ -500,7 +465,7 @@ export default function AdminPanelPage() {
 
              {showUserForm ? (
                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                 <h3 className="text-lg font-bold mb-4 border-b pb-2">Registrar Nuevo Usuario</h3>
+                 <h3 className="text-lg font-bold mb-4 border-b pb-2">Registrar Nuevo Usuario (Manual)</h3>
                  <form onSubmit={handleGuardarUsuario} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    <div>
                      <label className="block text-sm text-gray-600 mb-1">Correo Electrónico (Email)</label>
@@ -510,10 +475,19 @@ export default function AdminPanelPage() {
                      <label className="block text-sm text-gray-600 mb-1">Contraseña</label>
                      <input type="password" name="password" required className="w-full border rounded p-2 outline-none focus:border-green-500" placeholder="••••••••" />
                    </div>
-                   <div className="md:col-span-2">
-                     <label className="block text-sm text-gray-600 mb-1">Asignar a un Cliente (Opcional - Si no tiene usuario)</label>
+                   <div>
+                     <label className="block text-sm text-gray-600 mb-1">Perfil / Rol</label>
+                     <select name="perfilId" required className="w-full border rounded p-2 outline-none focus:border-green-500 bg-white text-sm">
+                       <option value="">Seleccione un perfil...</option>
+                       {perfilesDisponibles.map((p: any) => (
+                         <option key={p.id} value={p.id}>{p.nombre}</option>
+                       ))}
+                     </select>
+                   </div>
+                   <div>
+                     <label className="block text-sm text-gray-600 mb-1">Asignar a un Cliente (Opcional)</label>
                      <select name="clienteIdAsociar" className="w-full border rounded p-2 outline-none focus:border-green-500 bg-white text-sm">
-                       <option value="">No asociar a ningún cliente por ahora</option>
+                       <option value="">No asociar a ningún cliente</option>
                        {clientes.filter(c => !c.usuario).map(c => (
                          <option key={c.id} value={c.id}>{c.nombre} {c.apellido} (DNI: {c.dni})</option>
                        ))}
