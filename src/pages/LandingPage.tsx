@@ -21,6 +21,8 @@ export default function LandingPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [pendingRoute, setPendingRoute] = useState('');
+
   // Verificar si hay una sesión activa al cargar el componente
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -49,7 +51,7 @@ export default function LandingPage() {
 
       const data = await response.json();
       localStorage.setItem('token', data.token); 
-      localStorage.setItem('userEmail', email); // Guardamos el email para mostrarlo
+      localStorage.setItem('userEmail', email);
       
       setIsAuthenticated(true);
       setUserEmail(email);
@@ -58,7 +60,13 @@ export default function LandingPage() {
       setEmail('');
       setPassword('');
       
-      alert('¡Login exitoso!');
+      if (pendingRoute) {
+        navigate(pendingRoute);
+        setPendingRoute('');
+      } else {
+        alert('¡Login exitoso!');
+      }
+
     } catch (err: any) {
       setError(err.message || 'Error al conectar con el servidor');
     } finally {
@@ -76,7 +84,6 @@ export default function LandingPage() {
     alert('Sesión cerrada correctamente');
   };
 
-  // Función para manejar el clic en el ícono de usuario
   const handleUserIconClick = () => {
     if (isAuthenticated) {
       setIsProfileModalOpen(true);
@@ -85,11 +92,25 @@ export default function LandingPage() {
     }
   };
 
-  // Datos para renderizar las grillas rápidamente
+  // Función para manejar los clics en los botones de accesos rápidos
+  const handleAccesoRapidoClick = (ruta?: string) => {
+    if (ruta) {
+      if (isAuthenticated) {
+        navigate(ruta);
+      } else {
+        setPendingRoute(ruta);
+        setIsLoginModalOpen(true);
+      }
+    } else {
+      alert("Sección en desarrollo");
+    }
+  };
+
+  // Datos para renderizar las grillas rápidamente (Añadido el 'ruta: /vencimientos')
   const accesosRapidos = [
     { icon: <User className="text-pink-500" />, title: 'Mi número de asociado', bg: 'bg-pink-50' },
     { icon: <FileText className="text-green-500" />, title: 'Pagá tu factura', bg: 'bg-green-50' },
-    { icon: <Calendar className="text-purple-500" />, title: 'Próximos vencimientos', bg: 'bg-purple-50' },
+    { icon: <Calendar className="text-purple-500" />, title: 'Próximos vencimientos', bg: 'bg-purple-50', ruta: '/vencimientos' },
     { icon: <MessageSquare className="text-orange-500" />, title: 'Iniciar un reclamo', bg: 'bg-orange-50' },
     { icon: <SearchIcon className="text-blue-500" />, title: 'Seguí tu reclamo', bg: 'bg-blue-50' },
     { icon: <Edit3 className="text-teal-500" />, title: 'Actualizá tus datos', bg: 'bg-teal-50' },
@@ -131,7 +152,6 @@ export default function LandingPage() {
 
       {/* 2. HERO SECTION */}
        <section className="relative pt-16 pb-24 px-4 bg-gradient-to-br from-[#0c3b24] via-[#167041] to-[#22c55e] flex flex-col items-center text-center overflow-hidden">
-        {/* Círculos abstractos de fondo */}
         <div className="absolute right-0 top-0 w-[600px] h-[600px] border-[80px] border-white/5 rounded-full translate-x-1/3 -translate-y-1/4 pointer-events-none"></div>
         
         <div className="bg-white/10 border border-white/20 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 z-10 flex items-center gap-2">
@@ -146,21 +166,10 @@ export default function LandingPage() {
           Gestioná tus servicios, pagá tus facturas y seguí tus reclamos desde un solo lugar, cuando quieras.
         </p>
 
-        {/* Buscador */}
         <div className="w-full max-w-2xl bg-white rounded-full p-1.5 flex items-center shadow-xl z-10 mb-8">
           <div className="pl-4 pr-2 text-gray-400"><Search size={20} /></div>
           <input type="text" placeholder="¿Qué estás buscando? Ej: pagar factura, test de velocidad..." className="flex-1 bg-transparent outline-none text-gray-700 text-sm" />
           <button className="bg-green-700 hover:bg-green-800 text-white font-medium px-6 py-2 rounded-full text-sm">Buscar</button>
-        </div>
-
-        {/* Botones de acción rápida */}
-        <div className="flex gap-4 z-10">
-          <button onClick={handleUserIconClick} className="bg-[#4ade80] hover:bg-green-400 text-[#064e3b] font-bold py-2.5 px-6 rounded text-sm flex items-center gap-2 shadow-lg">
-            OFICINA VIRTUAL <span>→</span>
-          </button>
-          <button className="bg-[#0ea5e9] hover:bg-blue-400 text-white font-bold py-2.5 px-6 rounded text-sm flex items-center gap-2 shadow-lg">
-            PORTAL EMPRESAS <span>→</span>
-          </button>
         </div>
       </section>
 
@@ -173,7 +182,11 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {accesosRapidos.map((item, idx) => (
-              <button key={idx} className="flex flex-col items-center justify-center p-4 rounded-xl border border-gray-100 hover:shadow-md transition-shadow gap-3 bg-white">
+              <button 
+                key={idx} 
+                onClick={() => handleAccesoRapidoClick(item.ruta)}
+                className="flex flex-col items-center justify-center p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-green-300 transition-all gap-3 bg-white"
+              >
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center ${item.bg}`}>
                   {item.icon}
                 </div>
@@ -241,53 +254,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 5. MEDIOS DE PAGO Y OFICINA VIRTUAL */}
-      <section className="bg-white py-16">
-        <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h4 className="text-green-600 font-bold text-sm mb-2 tracking-widest uppercase">MEDIOS DE PAGO</h4>
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Pagá tu factura sin<br/>complicaciones</h2>
-            <p className="text-gray-500 text-sm mb-8">Elegí el medio que más te convenga. Tu pago se acredita automáticamente en tu cuenta.</p>
-            
-            <div className="space-y-3">
-              {[
-                { icon: <CreditCard className="text-green-600" />, title: 'Débito automático', desc: 'Adherí tu tarjeta o CBU y olvidate de los vencimientos.' },
-                { icon: <MonitorSmartphone className="text-green-600" />, title: 'Botón de pago online', desc: 'Pagá con tarjeta de débito o crédito desde nuestra web.' },
-                { icon: <QrCode className="text-purple-600" />, title: 'Transferencia o QR', desc: 'Escaneá el QR de tu factura con cualquier billetera virtual.' },
-                { icon: <MapPin className="text-orange-500" />, title: 'Lugares de pago', desc: 'Oficinas de la cooperativa y redes de cobranza habilitadas.' }
-              ].map((mp, i) => (
-                <div key={i} className="flex items-center gap-4 p-4 border border-gray-100 rounded-xl hover:shadow-sm cursor-pointer">
-                  <div className="bg-gray-50 p-3 rounded-lg">{mp.icon}</div>
-                  <div className="flex-1">
-                    <h5 className="font-bold text-sm text-gray-900">{mp.title}</h5>
-                    <p className="text-xs text-gray-500">{mp.desc}</p>
-                  </div>
-                  <div className="text-gray-300">&gt;</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-[#103a24] p-10 rounded-3xl text-white relative overflow-hidden shadow-2xl">
-            <div className="absolute right-0 top-0 w-64 h-64 bg-green-500/10 rounded-full blur-3xl"></div>
-            <span className="bg-white/10 text-xs font-bold px-3 py-1 rounded-full tracking-wider mb-6 inline-block">AUTOGESTIÓN 24/7</span>
-            <h2 className="text-4xl font-extrabold mb-4">Oficina Virtual</h2>
-            <p className="text-green-100/80 text-sm mb-8 max-w-sm">Hacé trámites, consultá tu estado de cuenta, descargá tus facturas y seguí el estado de tus reclamos desde tu casa.</p>
-            
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-8 space-y-4 text-sm">
-              <div className="flex justify-between border-b border-white/10 pb-3"><span>Factura septiembre</span><span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-xs">Pagada</span></div>
-              <div className="flex justify-between border-b border-white/10 pb-3"><span>Factura octubre - vence 10/10</span><span className="bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded text-xs">Pendiente</span></div>
-              <div className="flex justify-between"><span>Reclamo #1042 · Sin conexión</span><span className="bg-white/20 text-white px-2 py-0.5 rounded text-xs">Técnico asignado</span></div>
-            </div>
-
-            <button onClick={handleUserIconClick} className="bg-[#4ade80] hover:bg-green-400 text-[#064e3b] font-bold py-3 px-8 rounded shadow-lg flex items-center gap-2 w-max">
-              {isAuthenticated ? 'MI PANEL' : 'INGRESAR'} <span>→</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER BÁSICO */}
+      {/* FOOTER */}
       <footer className="bg-[#0b2918] text-white py-12 mt-16">
         <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-4 gap-8">
           <div>
@@ -297,23 +264,8 @@ export default function LandingPage() {
             </h4>
             <p className="text-gray-400 text-sm">Internet, televisión y telefonía para nuestra comunidad.</p>
           </div>
-          <div>
-            <h4 className="font-bold mb-4">SERVICIOS</h4>
-            <ul className="text-gray-400 text-sm space-y-2">
-              <li>Internet</li><li>Televisión</li><li>Telefonía</li>
-            </ul>
-          </div>
-          <div>
-             <h4 className="font-bold mb-4">CONTACTO</h4>
-             <p className="text-gray-400 text-sm space-y-2">0800-000-0000<br/>contacto@coop.com.ar</p>
-          </div>
         </div>
       </footer>
-
-      {/* Botón flotante de WhatsApp */}
-      <button className="fixed bottom-6 right-6 bg-[#25d366] hover:bg-[#20bd5a] text-white p-4 rounded-full shadow-2xl z-40 transition-transform hover:scale-105">
-        <MessageCircle size={28} />
-      </button>
 
       {/* MODAL DE LOGIN */}
       {isLoginModalOpen && !isAuthenticated && (
@@ -321,19 +273,20 @@ export default function LandingPage() {
           <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
             <button onClick={() => setIsLoginModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 font-bold text-xl">&times;</button>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Iniciar Sesión</h2>
+            {pendingRoute && <p className="text-orange-600 text-sm mb-2 font-medium">Debes iniciar sesión para acceder a ese trámite.</p>}
             <p className="text-gray-500 text-sm mb-6">Ingresá a tu Oficina Virtual</p>
             
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">Email</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all bg-gray-50" placeholder="tuemail@ejemplo.com" />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all bg-gray-50" />
               </div>
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">Contraseña</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all bg-gray-50" placeholder="••••••••" />
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all bg-gray-50" />
               </div>
               {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
-              <button type="submit" disabled={loading} className="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 rounded-lg transition-colors mt-2 disabled:opacity-70">
+              <button type="submit" disabled={loading} className="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 rounded-lg transition-colors mt-2">
                 {loading ? 'Validando...' : 'Ingresar a mi cuenta'}
               </button>
             </form>
@@ -341,41 +294,27 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* MODAL / MENÚ DE PERFIL DE USUARIO */}
+      {/* MODAL DE PERFIL */}
       {isProfileModalOpen && isAuthenticated && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm relative flex flex-col items-center text-center">
             <button onClick={() => setIsProfileModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 font-bold text-xl">&times;</button>
-            
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <UserCircle size={48} className="text-green-600" />
             </div>
-            
             <h2 className="text-xl font-bold text-gray-900 mb-1">Bienvenido</h2>
             <p className="text-gray-600 text-sm mb-6">{userEmail}</p>
 
             <div className="w-full space-y-3">
-              <button 
-                onClick={() => { setIsProfileModalOpen(false); navigate('/perfil'); }}
-                className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 rounded-lg transition-colors"
-              >
+              <button onClick={() => { setIsProfileModalOpen(false); navigate('/perfil'); }} className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 rounded-lg">
                 <User size={18} /> Ir a mi Perfil
               </button>
-
-              {/* Botón de Panel de Administrador (Solo visible para el admin) */}
               {userEmail === 'admin@coop.com' && (
-                <button 
-                  onClick={() => { setIsProfileModalOpen(false); navigate('/admin'); }}
-                  className="w-full flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium py-3 rounded-lg transition-colors border border-blue-200"
-                >
+                <button onClick={() => { setIsProfileModalOpen(false); navigate('/admin'); }} className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-700 font-medium py-3 rounded-lg">
                   <Shield size={18} /> Panel de Administrador
                 </button>
               )}
-
-              <button 
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium py-3 rounded-lg transition-colors border border-red-200"
-              >
+              <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 font-medium py-3 rounded-lg">
                 <LogOut size={18} /> Cerrar Sesión
               </button>
             </div>

@@ -10,7 +10,6 @@ export default function AdminPanelPage() {
   const [showUserForm, setShowUserForm] = useState(false);
   const [clienteEnEdicion, setClienteEnEdicion] = useState<any>(null);
 
-  // ESTADOS PARA LOS DATOS REALES DE LA BASE DE DATOS Y BÚSQUEDA
   const [clientes, setClientes] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [perfilesDisponibles, setPerfilesDisponibles] = useState<any[]>([]);
@@ -166,7 +165,6 @@ export default function AdminPanelPage() {
       telefono: String(formData.get('telefono')),
       email: formData.get('email'),
       activo: true,
-      // Si estamos editando y el cliente ya tenía un usuario, lo conservamos en la petición
       usuario: clienteEnEdicion?.usuario || null,
       domicilio: domicilioData,
       suscripciones: suscripcionesParaBackend
@@ -193,7 +191,7 @@ export default function AdminPanelPage() {
       }
 
       await fetchClientes();
-      await fetchUsuarios(); // Refrescamos usuarios para ver la cuenta recién creada automáticamente
+      await fetchUsuarios();
       alert('¡Cliente guardado exitosamente en la base de datos!');
       setShowClientForm(false); 
     } catch (error) {
@@ -202,7 +200,6 @@ export default function AdminPanelPage() {
     }
   };
 
-  // Creación manual de usuarios (para empleados u otros usos)
   const handleGuardarUsuario = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -330,11 +327,8 @@ export default function AdminPanelPage() {
                   <div><label className="block text-sm text-gray-600 mb-1">DNI</label><input type="text" name="dni" defaultValue={clienteEnEdicion?.dni} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
                   <div><label className="block text-sm text-gray-600 mb-1">Teléfono</label><input type="text" name="telefono" defaultValue={clienteEnEdicion?.telefono} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
                   
-                  {/* Email ahora es obligatorio */}
                   <div className="md:col-span-2"><label className="block text-sm text-gray-600 mb-1">Email <span className="text-xs text-gray-400 font-normal">(Se utilizará para crear la cuenta de usuario)</span></label><input type="email" name="email" defaultValue={clienteEnEdicion?.email} required className="w-full border rounded p-2 outline-none focus:border-green-500" /></div>
                   
-                  {/* Eliminamos el selector manual de usuario aquí porque es automático */}
-
                   <div className="md:col-span-2 mt-4"><h4 className="font-bold text-gray-700">Domicilio</h4></div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Localidad</label>
