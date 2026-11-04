@@ -20,6 +20,8 @@ export interface Domicilio {
   departamento?: string;
   observaciones?: string;
   barrio?: Barrio | null;
+  latitud?: number | null;
+  longitud?: number | null;
 }
 
 export interface Tarifa {
