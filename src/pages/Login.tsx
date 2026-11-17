@@ -1,55 +1,63 @@
-import { useState } from 'react'
-import axios from 'axios'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { CalendarClock, CheckCircle2, MessageSquare, ShieldCheck, User } from 'lucide-react';
+import { LoginForm } from '../components/LoginModal';
+import { useAuth } from '../context/auth-context';
+
+/** Página de ingreso (/login). Después del login vuelve a ?redirect=... o al perfil. */
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  
+  const { login, isAuthenticated, userEmail } = useAuth();
   const navigate = useNavigate();
-
-  const manejarSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    try {
-      const response = await axios.post('http://localhost:8080/api/auth/login', {
-        email,
-        password
-      });
-
-      const token = response.data.token;
-      localStorage.setItem('token', token); 
-      
-      navigate('/dashboard'); 
-      
-    } catch (err) {
-      console.error(err);
-      setError('Credenciales incorrectas o error de conexión');
-    }
-  };
+  const [params] = useSearchParams();
+  const redirect = params.get('redirect') || '/perfil';
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md w-96">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-          Cooperativa de Servicios
-        </h2>
-        
-        {error && <div className="mb-4 text-red-600 text-sm font-semibold text-center">{error}</div>}
+    <div className="bg-coop-ground">
+      <div className="container-site grid items-center gap-10 py-10 sm:py-16 lg:grid-cols-2">
+        <div className="order-2 rounded-[22px] bg-coop-navy p-6 text-white sm:p-10 lg:order-1">
+          <span className="rounded-full bg-white/10 px-3 py-1 text-[13px] font-bold uppercase tracking-[1.5px] text-coop-mint">
+            Autogestión 24/7
+          </span>
+          <h2 className="mt-4 font-display text-4xl font-bold uppercase leading-none sm:text-5xl">Oficina Virtual</h2>
+          <ul className="mt-6 flex flex-col gap-4 text-[17px] text-[#D3E0EC]">
+            <li className="flex gap-3">
+              <CalendarClock className="shrink-0 text-coop-mint" aria-hidden="true" /> Consultá tus próximos vencimientos
+            </li>
+            <li className="flex gap-3">
+              <MessageSquare className="shrink-0 text-coop-mint" aria-hidden="true" /> Iniciá y seguí tus reclamos
+            </li>
+            <li className="flex gap-3">
+              <User className="shrink-0 text-coop-mint" aria-hidden="true" /> Revisá tus datos y servicios activos
+            </li>
+            <li className="flex gap-3">
+              <ShieldCheck className="shrink-0 text-coop-mint" aria-hidden="true" /> Acceso seguro con tu usuario de asociado
+            </li>
+          </ul>
+        </div>
 
-        <form onSubmit={manejarSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Correo Electrónico</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="tu@email.com" required />
-          </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Contraseña</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" required />
-          </div>
-          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">Ingresar</button>
-        </form>
+        <div className="order-1 card w-full p-6 shadow-card sm:p-10 lg:order-2">
+          {isAuthenticated ? (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <CheckCircle2 size={44} className="text-coop-green" aria-hidden="true" />
+              <h1 className="font-display text-3xl font-bold uppercase text-coop-navy">Ya iniciaste sesión</h1>
+              <p className="text-coop-muted">Estás conectado como {userEmail}.</p>
+              <Link to={redirect} className="btn-primary">
+                Continuar
+              </Link>
+            </div>
+          ) : (
+            <>
+              <h1 className="font-display text-4xl font-bold uppercase leading-none text-coop-navy">Iniciar sesión</h1>
+              <p className="mb-6 mt-2 text-coop-muted">Ingresá a tu Oficina Virtual</p>
+              <LoginForm
+                onSubmit={async (email, password) => {
+                  await login(email, password);
+                  navigate(redirect);
+                }}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
-  )
+  );
 }

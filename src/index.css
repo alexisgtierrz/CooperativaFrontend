@@ -1,3 +1,91 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-coop-ground font-sans text-coop-ink antialiased;
+    line-height: 1.5;
+  }
+
+  /* Foco visible y consistente para navegación con teclado */
+  :focus-visible {
+    outline: 3px solid #17783f;
+    outline-offset: 2px;
+  }
+
+  /* Los anclajes no quedan tapados por el encabezado */
+  [id] {
+    scroll-margin-top: 96px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .container-site {
+    @apply mx-auto w-full max-w-site px-4 sm:px-6;
+  }
+
+  .eyebrow {
+    @apply text-sm font-bold uppercase tracking-[2px] text-coop-green;
+  }
+
+  .title-section {
+    @apply font-display text-[34px] font-bold uppercase leading-none text-coop-navy sm:text-[44px];
+  }
+
+  .btn {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] px-5 py-3 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-coop-green text-white hover:bg-coop-green-dark;
+  }
+  .btn-navy {
+    @apply btn bg-coop-navy text-white hover:bg-coop-navy-dark;
+  }
+  .btn-mint {
+    @apply btn bg-coop-mint text-coop-navy-deep hover:bg-white;
+  }
+  .btn-ghost-light {
+    @apply btn border border-white/45 bg-white/10 text-white hover:bg-white/20;
+  }
+  .btn-outline {
+    @apply btn border border-coop-line-strong bg-white text-coop-navy hover:border-coop-navy;
+  }
+
+  .card {
+    @apply rounded-2xl border border-coop-line bg-white;
+  }
+
+  .field-label {
+    @apply mb-1 block text-sm font-semibold text-coop-ink;
+  }
+  .field {
+    @apply min-h-[46px] w-full rounded-[10px] border border-coop-line-strong bg-white px-3.5 py-2.5 text-base text-coop-ink placeholder:text-[#8A97A5] focus:border-coop-green focus:outline-none focus:ring-2 focus:ring-coop-green/25;
+  }
+
+  .link {
+    @apply font-bold text-coop-navy underline-offset-4 hover:text-coop-green hover:underline;
+  }
+
+  /* Placeholder rayado para fotos que todavía no se cargaron */
+  .photo-placeholder {
+    background: repeating-linear-gradient(135deg, #d8e3ee 0px, #d8e3ee 16px, #dfe8f1 16px, #dfe8f1 32px);
+  }
+}
