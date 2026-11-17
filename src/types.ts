@@ -1,5 +1,3 @@
-// Tipos que reflejan las entidades que devuelve el backend (solo los campos que usa el front)
-
 export interface Localidad {
   id: number;
   nombre: string;
@@ -63,7 +61,6 @@ export interface Ticket {
   fechaCreacion?: string;
   descripcion: string;
   categoria?: string;
-  /** Algunas respuestas viejas traían el estado como texto plano */
   estado?: string;
   historialEstados?: CambioEstado[];
 }
@@ -95,9 +92,96 @@ export interface Cliente {
   tickets?: Ticket[];
 }
 
-/** Respuesta de GET /api/clientes/perfil-actual */
+//Respuesta de GET /api/clientes/perfil-actual
 export interface PerfilActual {
   tipoUsuario: string;
   usuario: { email: string };
   perfil: Cliente;
+}
+
+//Datos editables de un cliente (los mismos campos van y vienen en las solicitudes de actualización)
+export interface DatosCliente {
+  nombre: string;
+  apellido: string;
+  telefono?: string | null;
+  calle?: string | null;
+  numero?: number | null;
+  piso?: string | null;
+  departamento?: string | null;
+  observaciones?: string | null;
+  barrioId?: number | null;
+  barrioNombre?: string | null;
+  localidadId?: number | null;
+  localidadNombre?: string | null;
+}
+
+//Cuerpo que se envía al crear o corregir una solicitud
+export type DatosClienteEnvio = Pick<
+  DatosCliente,
+  'nombre' | 'apellido' | 'telefono' | 'calle' | 'numero' | 'piso' | 'departamento' | 'observaciones' | 'barrioId'
+>;
+
+export type EstadoSolicitud = 'PENDIENTE' | 'CONFIRMADA' | 'RECHAZADA';
+
+//Respuesta de /api/solicitudes-actualizacion
+export interface SolicitudActualizacion {
+  id: number;
+  estado: EstadoSolicitud;
+  fechaSolicitud: string;
+  fechaResolucion?: string | null;
+  resueltaPor?: string | null;
+  clienteId: number;
+  clienteDni?: string | null;
+  actual: DatosCliente;
+  propuesto: DatosCliente;
+}
+
+//Tipo de incidente (GET /api/tipos-incidente). `especialidad` es el área técnica que lo resuelve
+export interface TipoIncidente {
+  id: number;
+  nombre: string;
+  gravedad?: string | null;
+  especialidad?: string | null;
+}
+
+export type CodigoEstadoReclamo = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTO';
+
+export interface ClienteResumen {
+  id: number;
+  nombre: string;
+  apellido: string;
+  telefono?: string | null;
+  domicilio?: string | null;
+}
+
+export interface SeguimientoReclamo {
+  estado?: string | null;
+  desde?: string | null;
+  hasta?: string | null;
+  tecnico?: string | null;
+}
+
+//Reclamo (ticket) tal como lo devuelve /api/reclamos/**
+export interface Reclamo {
+  id: number;
+  fechaCreacion?: string | null;
+  descripcion: string;
+  tipoIncidenteId?: number | null;
+  tipoIncidenteNombre?: string | null;
+  gravedad?: string | null;
+  especialidad?: string | null;
+  estado: CodigoEstadoReclamo;
+  estadoNombre?: string | null;
+  tecnicoNombre?: string | null;
+  observacionesResolucion?: string | null;
+  historial: SeguimientoReclamo[];
+  cliente?: ClienteResumen | null;
+}
+
+export interface EmpleadoPerfil {
+  id: number;
+  nombre: string;
+  apellido: string;
+  legajo?: string | null;
+  especialidad?: string | null;
 }

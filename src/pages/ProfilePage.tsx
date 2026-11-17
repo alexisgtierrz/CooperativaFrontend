@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
   CalendarClock,
+  Clock,
   ChevronRight,
   IdCard,
   Lock,
@@ -17,6 +18,13 @@ import {
 } from 'lucide-react';
 import { Badge, EmptyState, LoadingState, PageHeader } from '../components/ui';
 import PerfilError from '../components/PerfilError';
+import Dialog from '../components/Dialog';
+import SolicitudActualizacionForm from '../components/SolicitudActualizacionForm';
+import { useAuth } from '../context/auth-context';
+import { useSolicitudActual } from '../hooks/useSolicitudActual';
+import { apiJson } from '../lib/api';
+import { crearSolicitud, mensajeDeError } from '../lib/solicitudes';
+import type { Barrio, Cliente, DatosCliente, DatosClienteEnvio, Localidad } from '../types';
 import { usePerfilActual } from '../hooks/usePerfilActual';
 import { estadoTicket, formatearFechaSimple, tonoEstadoTicket } from '../lib/format';
 
@@ -56,7 +64,7 @@ function PerfilContenido({ data }: { data: NonNullable<ReturnType<typeof usePerf
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      {/* Columna izquierda: identidad y credenciales */}
+      {/*Columna izquierda: identidad y credenciales*/}
       <div className="flex flex-col gap-6">
         <div className="card flex flex-col items-center p-6 text-center sm:p-8">
           <span className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-coop-green-soft font-display text-4xl font-bold text-coop-green">
@@ -93,7 +101,7 @@ function PerfilContenido({ data }: { data: NonNullable<ReturnType<typeof usePerf
         </nav>
       </div>
 
-      {/* Columna derecha: datos del rol */}
+      {/*Columna derecha: datos del rol*/}
       <div className="flex flex-col gap-6 lg:col-span-2">
         <section className="card p-6" aria-labelledby="info-personal">
           <CardTitle id="info-personal">Información personal</CardTitle>
@@ -134,15 +142,19 @@ function PerfilContenido({ data }: { data: NonNullable<ReturnType<typeof usePerf
               </>
             )}
           </dl>
-          <div className="mt-6 flex flex-col gap-3 rounded-xl border border-coop-line-soft bg-coop-ground p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="flex items-start gap-2 text-[15px] text-coop-muted">
-              <Pencil size={18} className="mt-0.5 shrink-0 text-coop-navy" aria-hidden="true" />
-              ¿Cambiaron tus datos? Pedí la actualización y la cargamos por vos.
-            </p>
-            <Link to="/contacto?asunto=Actualizar%20mis%20datos" className="btn-outline whitespace-nowrap px-4 py-2">
-              Actualizar datos
-            </Link>
-          </div>
+          {esCliente ? (
+            <ActualizarDatos perfil={perfil} />
+          ) : (
+            <div className="mt-6 flex flex-col gap-3 rounded-xl border border-coop-line-soft bg-coop-ground p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="flex items-start gap-2 text-[15px] text-coop-muted">
+                <Pencil size={18} className="mt-0.5 shrink-0 text-coop-navy" aria-hidden="true" />
+                ¿Cambiaron tus datos? Pedí la actualización y la cargamos por vos.
+              </p>
+              <Link to="/contacto?asunto=Actualizar%20mis%20datos" className="btn-outline whitespace-nowrap px-4 py-2">
+                Actualizar datos
+              </Link>
+            </div>
+          )}
         </section>
 
         {esCliente && (
@@ -266,5 +278,136 @@ function AccesoFila({ to, icon, label, last = false }: { to: string; icon: React
       <span className="flex-1">{label}</span>
       <ChevronRight size={18} className="text-[#8A97A5]" aria-hidden="true" />
     </Link>
+  );
+}
+
+//Botón "Actualizar datos": abre el formulario y envía una solicitud pendiente (no modifica el cliente)
+function ActualizarDatos({ perfil }: { perfil: Cliente }) {
+  const { notify } = useAuth();
+  const { solicitud, loading, recargar } = useSolicitudActual();
+  const [abierto, setAbierto] = useState(false);
+  const [cargandoListas, setCargandoListas] = useState(false);
+  const [localidades, setLocalidades] = useState<Localidad[]>([]);
+  const [barrios, setBarrios] = useState<Barrio[]>([]);
+  const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState('');
+
+  const pendiente = solicitud?.estado === 'PENDIENTE';
+  const dom = perfil.domicilio;
+  const inicial: DatosCliente = {
+    nombre: perfil.nombre,
+    apellido: perfil.apellido,
+    telefono: perfil.telefono,
+    calle: dom?.calle,
+    numero: dom?.numero,
+    piso: dom?.piso,
+    departamento: dom?.departamento,
+    observaciones: dom?.observaciones,
+    barrioId: dom?.barrio?.id,
+    localidadId: dom?.barrio?.localidad?.id,
+  };
+
+  const cerrar = useCallback(() => setAbierto(false), []);
+
+  const abrir = async () => {
+    setErrorEnvio('');
+    setAbierto(true);
+    setCargandoListas(true);
+    try {
+      const [locs, bars] = await Promise.all([apiJson<Localidad[]>('/localidades'), apiJson<Barrio[]>('/barrios')]);
+      setLocalidades(locs ?? []);
+      setBarrios(bars ?? []);
+    } catch (err) {
+      console.error('Error al cargar localidades y barrios:', err);
+      setErrorEnvio('No pudimos cargar las localidades y barrios. Cerrá e intentá de nuevo.');
+    } finally {
+      setCargandoListas(false);
+    }
+  };
+
+  const enviar = async (datos: DatosClienteEnvio) => {
+    setEnviando(true);
+    setErrorEnvio('');
+    try {
+      await crearSolicitud(datos);
+      setAbierto(false);
+      notify('¡Solicitud enviada! Quedó pendiente de aprobación por un administrador.');
+      recargar();
+    } catch (err) {
+      setErrorEnvio(mensajeDeError(err));
+      recargar();
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <>
+      {pendiente ? (
+        <div
+          role="status"
+          className="mt-6 flex flex-col gap-3 rounded-xl border border-coop-orange/30 bg-coop-orange-soft p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p className="flex items-start gap-2 text-[15px] text-coop-ink">
+            <Clock size={18} className="mt-0.5 shrink-0 text-coop-orange" aria-hidden="true" />
+            <span>
+              Tu solicitud de actualización de datos del {formatearFechaSimple(solicitud?.fechaSolicitud)} está pendiente de aprobación por un
+              administrador. Cuando la confirme, vas a ver los cambios acá.
+            </span>
+          </p>
+          <Badge tone="orange">Pendiente de aprobación</Badge>
+        </div>
+      ) : (
+        <div className="mt-6 flex flex-col gap-3 rounded-xl border border-coop-line-soft bg-coop-ground p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="flex items-start gap-2 text-[15px] text-coop-muted">
+              <Pencil size={18} className="mt-0.5 shrink-0 text-coop-navy" aria-hidden="true" />
+              ¿Cambiaron tus datos? Pedí la actualización y un administrador la revisa.
+            </p>
+            {solicitud?.estado === 'RECHAZADA' && (
+              <p className="mt-2 pl-7 text-sm font-semibold text-red-700">
+                Tu última solicitud ({formatearFechaSimple(solicitud.fechaSolicitud)}) fue rechazada. Podés enviar una nueva.
+              </p>
+            )}
+          </div>
+          <button type="button" onClick={abrir} disabled={loading} className="btn-outline whitespace-nowrap px-4 py-2">
+            Actualizar datos
+          </button>
+        </div>
+      )}
+
+      {abierto && (
+        <Dialog
+          title="Actualizar mis datos"
+          subtitle="Tu solicitud no cambia tus datos al instante: un administrador la revisa y la confirma."
+          onClose={cerrar}
+          size="md"
+        >
+          {cargandoListas ? (
+            <p role="status" className="py-8 text-center font-semibold text-coop-muted">
+              Cargando…
+            </p>
+          ) : (
+            <>
+              {errorEnvio && (
+                <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                  {errorEnvio}
+                </p>
+              )}
+              <SolicitudActualizacionForm
+                inicial={inicial}
+                localidades={localidades}
+                barrios={barrios}
+                submitLabel="Enviar solicitud"
+                enviando={enviando}
+                idPrefix="perfil"
+                onSubmit={enviar}
+                onCancel={cerrar}
+              />
+            </>
+          )}
+        </Dialog>
+      )}
+    </>
   );
 }
