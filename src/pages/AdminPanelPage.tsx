@@ -1,9 +1,10 @@
-import React, { useState, useEffect, type ReactNode } from 'react';
+import React, { useState, useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Edit, LogOut, Plus, PlusCircle, Search, Shield, Trash2, UserPlus, Users } from 'lucide-react';
 import Logo from '../components/layout/Logo';
 import { Badge, EmptyState } from '../components/ui';
 import { apiFetch } from '../lib/api';
+import SelectorUbicacion, { type Coordenadas, type DireccionFormulario } from '../components/SelectorUbicacion';
 import { useAuth } from '../context/auth-context';
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- se mantienen los tipos `any` del panel original */
@@ -31,6 +32,8 @@ export default function AdminPanelPage() {
   const [suscripcionesForm, setSuscripcionesForm] = useState<any[]>([]);
   const [servicioSeleccionado, setServicioSeleccionado] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [ubicacion, setUbicacion] = useState<Coordenadas | null>(null);
+  const formClienteRef = useRef<HTMLFormElement>(null);
 
   // ---- Lecturas (mismos endpoints que el panel original) ----
   const fetchClientes = async () => {
@@ -107,6 +110,7 @@ export default function AdminPanelPage() {
     setClienteEnEdicion(null);
     setSuscripcionesForm([]);
     setLocalidadSeleccionada('');
+    setUbicacion(null);
     setShowClientForm(true);
   };
 
@@ -118,6 +122,8 @@ export default function AdminPanelPage() {
     } else {
       setLocalidadSeleccionada('');
     }
+    const dom = clienteSeleccionado.domicilio;
+    setUbicacion(dom?.latitud != null && dom?.longitud != null ? { lat: dom.latitud, lng: dom.longitud } : null);
     setShowClientForm(true);
   };
 
@@ -137,8 +143,27 @@ export default function AdminPanelPage() {
     setSuscripcionesForm(suscripcionesForm.filter((sub) => (sub.id || sub.temporalId) !== identificador));
   };
 
+  // Arma la dirección escrita en el formulario para buscarla en el mapa
+  const obtenerDireccionFormulario = (): DireccionFormulario => {
+    const form = formClienteRef.current;
+    if (!form) return { calle: '', numero: '', localidad: '' };
+    const datos = new FormData(form);
+    const barrio = barriosDisponibles.find((b: any) => b.id === Number(datos.get('barrioId')));
+    const localidad =
+      localidadesDisponibles.find((l: any) => l.id === Number(localidadSeleccionada))?.nombre ?? barrio?.localidad?.nombre ?? '';
+    return {
+      calle: String(datos.get('calle') || '').trim(),
+      numero: String(datos.get('numero') || '').trim(),
+      localidad,
+    };
+  };
+
   const handleGuardarCliente = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!ubicacion) {
+      notify('Marcá en el mapa dónde queda la casa del cliente.', 'error');
+      return;
+    }
     const formData = new FormData(e.currentTarget);
 
     const barrioIdValue = formData.get('barrioId');
@@ -151,6 +176,8 @@ export default function AdminPanelPage() {
       departamento: formData.get('departamento'),
       observaciones: formData.get('observaciones'),
       barrio: barrioIdValue ? { id: Number(barrioIdValue) } : null,
+      latitud: ubicacion.lat,
+      longitud: ubicacion.lng,
     };
 
     const suscripcionesParaBackend = suscripcionesForm.map((sub) => ({
@@ -358,7 +385,7 @@ export default function AdminPanelPage() {
 
               {showClientForm ? (
                 <div className="card p-5 sm:p-7">
-                  <form onSubmit={handleGuardarCliente} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <form ref={formClienteRef} onSubmit={handleGuardarCliente} className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <Subtitulo>Datos personales</Subtitulo>
                     <Campo label="Nombre" name="nombre" defaultValue={clienteEnEdicion?.nombre} required />
                     <Campo label="Apellido" name="apellido" defaultValue={clienteEnEdicion?.apellido} required />
@@ -425,6 +452,15 @@ export default function AdminPanelPage() {
                         name="observaciones"
                         defaultValue={clienteEnEdicion?.domicilio?.observaciones || ''}
                         placeholder="Casa con rejas negras"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="field-label">Ubicación en el mapa</span>
+                      <SelectorUbicacion
+                        key={clienteEnEdicion?.id ?? 'nuevo'}
+                        value={ubicacion}
+                        onChange={setUbicacion}
+                        obtenerDireccion={obtenerDireccionFormulario}
                       />
                     </div>
 
