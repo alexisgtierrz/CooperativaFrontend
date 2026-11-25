@@ -185,3 +185,30 @@ export interface EmpleadoPerfil {
   legajo?: string | null;
   especialidad?: string | null;
 }
+
+//Factura del asociado
+export interface Factura {
+  id: number;
+  periodo: string; // '2026-10'
+  fechaEmision: string;
+  fechaVencimiento: string;
+  montoTotal: number;
+  estado: 'PENDIENTE' | 'PAGADA';
+  vencida: boolean;
+  servicios: string[];
+  fechaPago?: string | null;
+  idOperacion?: string | null;
+}
+
+export interface PreferenciaPago {
+  preferenceId: string;
+  initPoint: string;
+  sandboxInitPoint: string;
+}
+
+export interface ResultadoPago {
+  acreditado: boolean;
+  estadoPago: string;
+  facturaId?: number | null;
+  mensaje: string;
+}

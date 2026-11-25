@@ -17,7 +17,7 @@ const COLUMNAS = [
     titulo: 'Asociados',
     links: [
       { to: '/perfil', label: 'Oficina Virtual' },
-      { to: '/#pagos', label: 'Pagá tu factura' },
+      { to: '/pagar-factura', label: 'Pagá tu factura' },
       { to: '/reclamos', label: 'Reclamos' },
       { to: '/perfil', label: 'Actualizá tus datos' },
     ],

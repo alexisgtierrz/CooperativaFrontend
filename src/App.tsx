@@ -8,6 +8,8 @@ import ProfilePage from './pages/ProfilePage';
 import AdminPanelPage from './pages/AdminPanelPage';
 import VencimientosPage from './pages/VencimientosPage';
 import ReclamosPage from './pages/ReclamosPage';
+import PagarFacturaPage from './pages/PagarFacturaPage';
+import PagoResultadoPage from './pages/PagoResultadoPage';
 import ServiciosPage from './pages/ServiciosPage';
 import NosotrosPage from './pages/NosotrosPage';
 import InstitucionalPage from './pages/InstitucionalPage';
@@ -36,6 +38,8 @@ function App() {
             <Route path="/perfil" element={<RequireAuth clientOnly><ProfilePage /></RequireAuth>} />
             <Route path="/vencimientos" element={<RequireAuth clientOnly><VencimientosPage /></RequireAuth>} />
             <Route path="/reclamos" element={<RequireAuth clientOnly allowEmpleado><ReclamosPage /></RequireAuth>} />
+            <Route path="/pagar-factura" element={<RequireAuth clientOnly><PagarFacturaPage /></RequireAuth>} />
+            <Route path="/pagar-factura/resultado/:estado" element={<RequireAuth clientOnly><PagoResultadoPage /></RequireAuth>} />
 
             <Route path="*" element={<NotFoundPage />} />
           </Route>

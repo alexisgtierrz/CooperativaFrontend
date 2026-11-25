@@ -77,7 +77,6 @@ export interface AccesoRapido {
   titulo: string;
   icono: LucideIcon;
   tono: Tono;
-  /** Ruta interna. Si `auth` es true, pide iniciar sesión antes (mismo comportamiento que ya tenía el front) */
   ruta?: string;
   auth?: boolean;
   externo?: string;
@@ -85,7 +84,7 @@ export interface AccesoRapido {
 }
 
 export const ACCESOS_RAPIDOS: AccesoRapido[] = [
-  { titulo: 'Pagá tu factura', icono: CreditCard, tono: 'green', ruta: '/#pagos', claves: 'pagar factura pago debito tarjeta qr transferencia' },
+  { titulo: 'Pagá tu factura', icono: CreditCard, tono: 'green', ruta: '/pagar-factura', auth: true, claves: 'pagar factura pago debito tarjeta qr transferencia' },
   { titulo: 'Próximos vencimientos', icono: CalendarDays, tono: 'blue', ruta: '/vencimientos', auth: true, claves: 'vencimiento vence fecha suscripcion' },
   { titulo: 'Iniciar un reclamo', icono: MessageSquare, tono: 'orange', ruta: '/reclamos?nuevo=1', auth: true, claves: 'reclamo problema falla sin servicio tecnico ticket' },
   { titulo: 'Seguí tu reclamo', icono: SearchCheck, tono: 'orange', ruta: '/reclamos', auth: true, claves: 'seguir reclamo estado ticket' },
@@ -264,7 +263,6 @@ export const NUMEROS = [
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
-/** '2026-09-15' → '15 sep 2026' */
 export function formatearFecha(iso: string): string {
   const [y, m, d] = iso.split('T')[0].split('-').map(Number);
   return `${String(d).padStart(2, '0')} ${MESES[m - 1]} ${y}`;

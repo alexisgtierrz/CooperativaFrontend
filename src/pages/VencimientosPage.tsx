@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, CalendarClock, CheckCircle2, Clock, ShieldAlert } from 'lucide-react';
 import { Badge, EmptyState, LoadingState, PageHeader } from '../components/ui';
 import PerfilError from '../components/PerfilError';
 import { usePerfilActual } from '../hooks/usePerfilActual';
+import { formatearImporte, listarMisFacturas, nombrePeriodo } from '../lib/facturas';
+import type { Factura } from '../types';
 import { formatearFechaSimple, getEstadoVencimiento, type EstadoVencimiento } from '../lib/format';
 
 const ICONOS: Record<EstadoVencimiento['nivel'], typeof Clock> = {
@@ -24,7 +27,14 @@ const BARRA: Record<EstadoVencimiento['nivel'], string> = {
 export default function VencimientosPage() {
   const { data, loading, error, status, reload } = usePerfilActual();
 
-  // Solo las suscripciones activas (sin fecha de baja), igual que antes; ordenadas por la más próxima a vencer
+  //Facturas pendientes de pago: al pagarse dejan de figurar acá
+  const [facturasPendientes, setFacturasPendientes] = useState<Factura[]>([]);
+  useEffect(() => {
+    listarMisFacturas('PENDIENTE')
+      .then(setFacturasPendientes)
+      .catch(() => setFacturasPendientes([]));
+  }, []);
+
   const suscripciones =
     data?.tipoUsuario === 'CLIENTE'
       ? (data.perfil?.suscripciones ?? [])
@@ -55,6 +65,32 @@ export default function VencimientosPage() {
       </PageHeader>
 
       <div className="container-site py-8 sm:py-12">
+        {facturasPendientes.length > 0 && (
+          <section aria-labelledby="facturas-pendientes" className="mb-8">
+            <h2 id="facturas-pendientes" className="mb-3 text-xl font-bold">
+              Facturas pendientes de pago
+            </h2>
+            <ul className="grid gap-3 md:grid-cols-2">
+              {facturasPendientes.map((f) => {
+                const venc = getEstadoVencimiento(f.fechaVencimiento);
+                return (
+                  <li key={f.id} className="card flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+                    <div>
+                      <p className="font-bold">Factura {nombrePeriodo(f.periodo)}</p>
+                      <p className="text-sm text-coop-muted">
+                        Vence {formatearFechaSimple(f.fechaVencimiento)} · {formatearImporte(f.montoTotal)}
+                      </p>
+                    </div>
+                    <Badge tone={venc.tono}>{venc.texto}</Badge>
+                    <Link to="/pagar-factura" className="btn-primary px-4 py-2.5">
+                      Pagar
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
         {loading ? (
           <LoadingState label="Cargando tus vencimientos…" />
         ) : !data ? (
@@ -97,8 +133,8 @@ export default function VencimientosPage() {
                     </div>
                   </dl>
                   {(estado.nivel === 'vencido' || estado.nivel === 'hoy' || estado.nivel === 'proximo') && (
-                    <Link to="/#pagos" className="link self-start text-[15px]">
-                      Ver medios de pago →
+                    <Link to="/pagar-factura" className="link self-start text-[15px]">
+                      Pagar mi factura →
                     </Link>
                   )}
                 </li>
