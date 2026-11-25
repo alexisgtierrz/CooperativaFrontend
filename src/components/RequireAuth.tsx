@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { Lock, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/auth-context';
 import TopBar from './layout/TopBar';
@@ -13,11 +13,12 @@ import Footer from './layout/Footer';
 export default function RequireAuth({
   children,
   adminOnly = false,
+  clientOnly = false,
   withChrome = false,
 }: {
   children: ReactNode;
   adminOnly?: boolean;
-  /** true cuando la página protegida no usa el layout del sitio (panel de administración) */
+  clientOnly?: boolean;
   withChrome?: boolean;
 }) {
   const { isAuthenticated, isAdmin, openLogin } = useAuth();
@@ -48,6 +49,10 @@ export default function RequireAuth({
         }
       />,
     );
+  }
+
+  if (clientOnly && isAdmin) {
+    return <Navigate to="/admin" replace />;
   }
 
   if (adminOnly && !isAdmin) {

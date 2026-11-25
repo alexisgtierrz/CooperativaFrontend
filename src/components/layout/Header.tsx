@@ -54,7 +54,8 @@ export default function Header() {
     };
   }, [menuOpen]);
 
-  const accountLinks = isAdmin ? [...ACCOUNT_LINKS, { to: '/admin', label: 'Panel de administrador', icon: Shield }] : ACCOUNT_LINKS;
+  // El administrador solo ve el panel; el cliente/socio ven las demas opciones
+  const accountLinks = isAdmin ? [{ to: '/admin', label: 'Panel de administrador', icon: Shield }] : ACCOUNT_LINKS;
   const shortEmail = userEmail.split('@')[0] || 'Mi cuenta';
 
   return (
@@ -130,7 +131,7 @@ export default function Header() {
           {/* Acceso rápido a la Oficina Virtual en celulares */}
           {isAuthenticated ? (
             <Link
-              to="/perfil"
+              to={isAdmin ? '/admin' : '/perfil'}
               className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-coop-navy text-white sm:hidden"
               aria-label="Mi cuenta"
             >

@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, Shield } from 'lucide-react';
 import { ACCESOS_RAPIDOS, TONOS, type AccesoRapido } from '../../data/contenido';
 import { useAuth } from '../../context/auth-context';
 
@@ -11,7 +11,7 @@ const normalizar = (t: string) =>
     .replace(/[̀-ͯ]/g, '');
 
 export default function QuickAccess() {
-  const { requireAuth } = useAuth();
+  const { requireAuth, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [busqueda, setBusqueda] = useState('');
 
@@ -31,6 +31,26 @@ export default function QuickAccess() {
     e.preventDefault();
     if (resultados.length > 0 && busqueda.trim()) abrir(resultados[0]);
   };
+
+  if (isAdmin) {
+    return (
+      <section aria-label="Acceso del administrador" className="relative z-[3] -mt-14 sm:-mt-[72px]">
+        <div className="container-site">
+          <div className="flex flex-col items-start gap-4 rounded-[18px] bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-7">
+            <div>
+              <h2 className="font-display text-[28px] font-bold uppercase leading-none text-coop-navy sm:text-[32px]">
+                Panel de administración
+              </h2>
+              <p className="mt-2 text-coop-muted">Gestioná clientes, empleados, usuarios y solicitudes de actualización de datos.</p>
+            </div>
+            <Link to="/admin" className="btn-primary whitespace-nowrap">
+              <Shield size={18} aria-hidden="true" /> Ir al panel de administrador
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="accesos" className="relative z-[3] -mt-14 sm:-mt-[72px]">

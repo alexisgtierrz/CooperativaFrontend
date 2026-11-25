@@ -33,9 +33,9 @@ function App() {
             <Route path="/login" element={<Login />} />
 
             {/* Oficina Virtual (requiere sesión) */}
-            <Route path="/perfil" element={<RequireAuth><ProfilePage /></RequireAuth>} />
-            <Route path="/vencimientos" element={<RequireAuth><VencimientosPage /></RequireAuth>} />
-            <Route path="/reclamos" element={<RequireAuth><ReclamosPage /></RequireAuth>} />
+            <Route path="/perfil" element={<RequireAuth clientOnly><ProfilePage /></RequireAuth>} />
+            <Route path="/vencimientos" element={<RequireAuth clientOnly><VencimientosPage /></RequireAuth>} />
+            <Route path="/reclamos" element={<RequireAuth clientOnly><ReclamosPage /></RequireAuth>} />
 
             <Route path="*" element={<NotFoundPage />} />
           </Route>
