@@ -1,8 +1,8 @@
 // Datos institucionales. Reemplazar los valores entre corchetes por los reales.
 export const SITE = {
   nombre: 'Cooperativa de Servicios',
-  razonSocial: '[Nombre y localidad] · Ltda.',
-  telefono: '0800-[NÚMERO]',
+  razonSocial: 'CoopConecta · Ltda.',
+  telefono: '0800-888',
   telefonoHref: 'tel:0800000000',
   whatsappHref: 'https://wa.me/5490000000000',
   email: 'contacto@cooperativa.com.ar',
