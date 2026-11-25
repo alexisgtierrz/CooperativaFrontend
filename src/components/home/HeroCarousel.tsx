@@ -159,12 +159,12 @@ function SlideView({
   photoFailed: boolean;
   onPhotoError: () => void;
 }) {
-  const { requireAuth, isAdmin } = useAuth();
+  const { requireAuth, isAdmin, isEmpleado } = useAuth();
   // El administrador no usa los trámites de socio: esos botones se reemplazan por un acceso a su panel
-  const ctas = isAdmin
+  const ctas = isAdmin || isEmpleado
     ? [
         ...slide.ctas.filter((c) => !c.auth),
-        ...(slide.ctas.some((c) => c.auth) ? [{ label: 'Ir al panel de administrador', to: '/admin', variante: 'primary' as const }] : []),
+        ...(slide.ctas.some((c) => c.auth) ? [{ label: isAdmin ? 'Ir al panel de administrador' : 'Ir a reclamos', to: isAdmin ? '/admin' : '/reclamos', variante: 'primary' as const }] : []),
       ]
     : slide.ctas;
   const Heading = i === 0 ? 'h1' : 'h2';

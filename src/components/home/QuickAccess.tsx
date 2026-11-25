@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Shield } from 'lucide-react';
+import { MessageSquare, Search, Shield } from 'lucide-react';
 import { ACCESOS_RAPIDOS, TONOS, type AccesoRapido } from '../../data/contenido';
 import { useAuth } from '../../context/auth-context';
 
@@ -11,7 +11,7 @@ const normalizar = (t: string) =>
     .replace(/[̀-ͯ]/g, '');
 
 export default function QuickAccess() {
-  const { requireAuth, isAdmin } = useAuth();
+  const { requireAuth, isAdmin, isEmpleado } = useAuth();
   const navigate = useNavigate();
   const [busqueda, setBusqueda] = useState('');
 
@@ -32,19 +32,23 @@ export default function QuickAccess() {
     if (resultados.length > 0 && busqueda.trim()) abrir(resultados[0]);
   };
 
-  if (isAdmin) {
+  // Administrador y empleado no usan los trámites de socio: se les ofrece el acceso a su herramienta de trabajo
+  if (isAdmin || isEmpleado) {
+    const titulo = isAdmin ? 'Panel de administración' : 'Bandeja de reclamos';
+    const texto = isAdmin
+      ? 'Gestioná clientes, empleados, usuarios y solicitudes de actualización de datos.'
+      : 'Tomá los reclamos sin asignar de tu área y resolvé los que tenés asignados.';
     return (
-      <section aria-label="Acceso del administrador" className="relative z-[3] -mt-14 sm:-mt-[72px]">
+      <section aria-label={titulo} className="relative z-[3] -mt-14 sm:-mt-[72px]">
         <div className="container-site">
           <div className="flex flex-col items-start gap-4 rounded-[18px] bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-7">
             <div>
-              <h2 className="font-display text-[28px] font-bold uppercase leading-none text-coop-navy sm:text-[32px]">
-                Panel de administración
-              </h2>
-              <p className="mt-2 text-coop-muted">Gestioná clientes, empleados, usuarios y solicitudes de actualización de datos.</p>
+              <h2 className="font-display text-[28px] font-bold uppercase leading-none text-coop-navy sm:text-[32px]">{titulo}</h2>
+              <p className="mt-2 text-coop-muted">{texto}</p>
             </div>
-            <Link to="/admin" className="btn-primary whitespace-nowrap">
-              <Shield size={18} aria-hidden="true" /> Ir al panel de administrador
+            <Link to={isAdmin ? '/admin' : '/reclamos'} className="btn-primary whitespace-nowrap">
+              {isAdmin ? <Shield size={18} aria-hidden="true" /> : <MessageSquare size={18} aria-hidden="true" />}
+              {isAdmin ? 'Ir al panel de administrador' : 'Ir a reclamos'}
             </Link>
           </div>
         </div>

@@ -4,11 +4,11 @@ import { MEDIOS_PAGO, TONOS } from '../../data/contenido';
 import { useAuth } from '../../context/auth-context';
 
 export default function PaymentsSection() {
-  const { isAuthenticated, isAdmin, openLogin } = useAuth();
+  const { isAuthenticated, isAdmin, isEmpleado, openLogin } = useAuth();
   const navigate = useNavigate();
 
   // Medios de pago y Oficina Virtual son contenido para socios: el administrador no lo ve
-  if (isAdmin) return null;
+  if (isAdmin || isEmpleado) return null;
 
   return (
     <section id="pagos" aria-labelledby="pagos-t" className="border-y border-coop-line bg-white py-16 sm:py-20">

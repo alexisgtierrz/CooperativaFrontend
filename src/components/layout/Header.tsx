@@ -12,7 +12,7 @@ const ACCOUNT_LINKS = [
 ];
 
 export default function Header() {
-  const { isAuthenticated, userEmail, isAdmin, openLogin, logout } = useAuth();
+  const { isAuthenticated, userEmail, isAdmin, isEmpleado, openLogin, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
@@ -55,7 +55,12 @@ export default function Header() {
   }, [menuOpen]);
 
   // El administrador solo ve el panel; el cliente/socio ven las demas opciones
-  const accountLinks = isAdmin ? [{ to: '/admin', label: 'Panel de administrador', icon: Shield }] : ACCOUNT_LINKS;
+  // El empleado solo ve su bandeja de reclamos
+  const accountLinks = isAdmin
+    ? [{ to: '/admin', label: 'Panel de administrador', icon: Shield }]
+    : isEmpleado
+      ? [{ to: '/reclamos', label: 'Bandeja de reclamos', icon: MessageSquare }]
+      : ACCOUNT_LINKS;
   const shortEmail = userEmail.split('@')[0] || 'Mi cuenta';
 
   return (
@@ -131,7 +136,7 @@ export default function Header() {
           {/* Acceso rápido a la Oficina Virtual en celulares */}
           {isAuthenticated ? (
             <Link
-              to={isAdmin ? '/admin' : '/perfil'}
+              to={isAdmin ? '/admin' : isEmpleado ? '/reclamos' : '/perfil'}
               className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-coop-navy text-white sm:hidden"
               aria-label="Mi cuenta"
             >

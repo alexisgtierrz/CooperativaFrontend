@@ -6,12 +6,25 @@ import { ADMIN_EMAIL } from '../config/site';
 import LoginModal from '../components/LoginModal';
 import Toasts, { type ToastItem } from '../components/Toasts';
 
+/** Roles guardados en el JWT (claim "roles"), por ejemplo ["ROLE_EMPLEADO"]. */
+function rolesDelToken(): string[] {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return [];
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return Array.isArray(payload.roles) ? payload.roles : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   // Sesión: se lee de localStorage igual que antes (token + userEmail)
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('token')));
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem('userEmail') ?? '');
+  const [isEmpleado, setIsEmpleado] = useState(() => rolesDelToken().includes('ROLE_EMPLEADO'));
   const [loginOpen, setLoginOpen] = useState(false);
   const [pendingRoute, setPendingRoute] = useState('');
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -41,6 +54,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('userEmail', email);
       setIsAuthenticated(true);
       setUserEmail(email);
+      setIsEmpleado(rolesDelToken().includes('ROLE_EMPLEADO'));
       setLoginOpen(false);
 
       if (pendingRoute) {
@@ -58,6 +72,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('userEmail');
     setIsAuthenticated(false);
     setUserEmail('');
+    setIsEmpleado(false);
     notify('Sesión cerrada correctamente', 'info');
     navigate('/');
   }, [navigate, notify]);
@@ -75,6 +90,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       userEmail,
       isAdmin: isAuthenticated && userEmail === ADMIN_EMAIL,
+      isEmpleado: isAuthenticated && isEmpleado && userEmail !== ADMIN_EMAIL,
       pendingRoute,
       loginOpen,
       login,
@@ -84,7 +100,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       requireAuth,
       notify,
     }),
-    [isAuthenticated, userEmail, pendingRoute, loginOpen, login, logout, openLogin, closeLogin, requireAuth, notify],
+    [isAuthenticated, userEmail, isEmpleado, pendingRoute, loginOpen, login, logout, openLogin, closeLogin, requireAuth, notify],
   );
 
   return (

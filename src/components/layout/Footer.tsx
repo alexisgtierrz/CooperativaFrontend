@@ -25,14 +25,15 @@ const COLUMNAS = [
 ];
 
 export default function Footer() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isEmpleado } = useAuth();
+  const soloPersonal = isAdmin || isEmpleado;
   // La columna de asociados (Oficina Virtual, pagos, reclamos) no aplica al administrador
-  const columnas = isAdmin ? COLUMNAS.filter((c) => c.titulo !== 'Asociados') : COLUMNAS;
+  const columnas = soloPersonal ? COLUMNAS.filter((c) => c.titulo !== 'Asociados') : COLUMNAS;
 
   return (
     <footer className="bg-coop-navy-dark pb-24 pt-14 text-[15px] text-[#DCE7F2] sm:pb-7 sm:pt-16">
       <div className="container-site">
-        <div className={`grid gap-9 border-b border-white/15 pb-10 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
+        <div className={`grid gap-9 border-b border-white/15 pb-10 sm:grid-cols-2 ${soloPersonal ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
           <div className="flex flex-col gap-3.5">
             <span className="font-display text-2xl font-bold uppercase text-white">{SITE.nombre}</span>
             <p>Internet, televisión y telefonía para nuestra comunidad. Una cooperativa de y para sus asociados.</p>

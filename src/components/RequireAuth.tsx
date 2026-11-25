@@ -14,14 +14,17 @@ export default function RequireAuth({
   children,
   adminOnly = false,
   clientOnly = false,
+  allowEmpleado = false,
   withChrome = false,
 }: {
   children: ReactNode;
   adminOnly?: boolean;
   clientOnly?: boolean;
+  /** con clientOnly: el empleado también puede entrar (por ejemplo a Reclamos, donde tiene su bandeja) */
+  allowEmpleado?: boolean;
   withChrome?: boolean;
 }) {
-  const { isAuthenticated, isAdmin, openLogin } = useAuth();
+  const { isAuthenticated, isAdmin, isEmpleado, openLogin } = useAuth();
   const location = useLocation();
 
   const frame = (gate: ReactNode) =>
@@ -53,6 +56,10 @@ export default function RequireAuth({
 
   if (clientOnly && isAdmin) {
     return <Navigate to="/admin" replace />;
+  }
+  // El empleado no tiene ficha de cliente: perfil y vencimientos no le corresponden
+  if (clientOnly && isEmpleado && !allowEmpleado) {
+    return <Navigate to="/reclamos" replace />;
   }
 
   if (adminOnly && !isAdmin) {

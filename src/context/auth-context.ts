@@ -6,6 +6,8 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   userEmail: string;
   isAdmin: boolean;
+  /** true si el usuario tiene el rol de empleado (técnico); sale del token, sin consultar al servidor */
+  isEmpleado: boolean;
   /** Ruta a la que se navega después de iniciar sesión (si el usuario intentó entrar a un trámite) */
   pendingRoute: string;
   loginOpen: boolean;
