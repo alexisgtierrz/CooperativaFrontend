@@ -159,7 +159,14 @@ function SlideView({
   photoFailed: boolean;
   onPhotoError: () => void;
 }) {
-  const { requireAuth } = useAuth();
+  const { requireAuth, isAdmin } = useAuth();
+  // El administrador no usa los trámites de socio: esos botones se reemplazan por un acceso a su panel
+  const ctas = isAdmin
+    ? [
+        ...slide.ctas.filter((c) => !c.auth),
+        ...(slide.ctas.some((c) => c.auth) ? [{ label: 'Ir al panel de administrador', to: '/admin', variante: 'primary' as const }] : []),
+      ]
+    : slide.ctas;
   const Heading = i === 0 ? 'h1' : 'h2';
 
   return (
@@ -212,7 +219,7 @@ function SlideView({
         </Heading>
         <p className="mb-6 max-w-[520px] text-[17px] text-[#E3ECF4] sm:mb-[30px] sm:text-[19px]">{slide.texto}</p>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          {slide.ctas.map((cta) => {
+          {ctas.map((cta) => {
             const className = cta.variante === 'primary' ? 'btn-primary px-[22px] py-3.5' : 'btn-ghost-light px-[22px] py-3.5';
             const content = (
               <>
@@ -220,7 +227,7 @@ function SlideView({
                 {cta.variante === 'primary' && <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />}
               </>
             );
-            return cta.auth ? (
+            return 'auth' in cta && cta.auth ? (
               <button key={cta.label} type="button" onClick={() => requireAuth(cta.to)} className={className}>
                 {content}
               </button>
