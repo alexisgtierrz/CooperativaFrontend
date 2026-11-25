@@ -1,5 +1,5 @@
 import { ApiError, apiFetch } from './api';
-import type { Factura, PreferenciaPago, ResultadoPago } from '../types';
+import type { CobranzaCliente, Factura, PreferenciaPago, ResultadoPago } from '../types';
 
 //Lee la respuesta; si falla, lanza ApiError con el motivo que mande el backend
 async function leer<T>(response: Response): Promise<T> {
@@ -22,6 +22,11 @@ async function leer<T>(response: Response): Promise<T> {
 //Facturas del usuario autenticado, opcionalmente filtradas por estado
 export async function listarMisFacturas(estado?: 'PENDIENTE' | 'PAGADA'): Promise<Factura[]> {
   return leer(await apiFetch(estado ? `/facturas/mis-facturas?estado=${estado}` : '/facturas/mis-facturas'));
+}
+
+//Administrador: clientes con servicios, facturas, vencimientos y deuda
+export async function listarCobranzas(): Promise<CobranzaCliente[]> {
+  return leer(await apiFetch('/facturas/cobranzas'));
 }
 
 //Crea la preferencia de Mercado Pago (Checkout Pro) para una factura pendiente

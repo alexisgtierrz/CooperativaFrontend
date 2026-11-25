@@ -1,23 +1,25 @@
 import React, { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Check, ClipboardList, Edit, LogOut, Plus, PlusCircle, Search, Shield, Trash2, UserPlus, Users, Briefcase, X } from 'lucide-react';
+import { ArrowLeft, Check, ClipboardList, Receipt, Edit, LogOut, Plus, PlusCircle, Search, Shield, Trash2, UserPlus, Users, Briefcase, X } from 'lucide-react';
 import Logo from '../components/layout/Logo';
 import { Badge, EmptyState } from '../components/ui';
 import { apiFetch } from '../lib/api';
 import { useAuth } from '../context/auth-context';
 import SelectorUbicacion, { type Coordenadas, type DireccionFormulario } from '../components/SelectorUbicacion';
 import Dialog from '../components/Dialog';
+import CobranzasPanel from '../components/admin/CobranzasPanel';
 import SolicitudActualizacionForm from '../components/SolicitudActualizacionForm';
 import { formatearFechaSimple } from '../lib/format';
 import { confirmarSolicitud, listarSolicitudes, mensajeDeError, rechazarSolicitud } from '../lib/solicitudes';
 import type { DatosCliente, DatosClienteEnvio, SolicitudActualizacion } from '../types';
 
 
-type Tab = 'clientes' | 'usuarios' | 'empleados' | 'solicitudes';
+type Tab = 'clientes' | 'usuarios' | 'empleados' | 'solicitudes' | 'cobranzas';
 
 export default function AdminPanelPage() {
   const { userEmail, logout, notify } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('clientes');
+  const [deudoresCount, setDeudoresCount] = useState(0);
 
   const [showClientForm, setShowClientForm] = useState(false);
   const [showUserForm, setShowUserForm] = useState(false);
@@ -428,6 +430,7 @@ export default function AdminPanelPage() {
     { id: 'clientes', label: 'Gestión de clientes', corto: 'Clientes', icon: Users, count: clientes.length },
     { id: 'empleados', label: 'Gestión de empleados', corto: 'Empleados', icon: Briefcase, count: empleados.length },
     { id: 'usuarios', label: 'Gestión de usuarios', corto: 'Usuarios', icon: UserPlus, count: usuarios.length },
+    { id: 'cobranzas', label: 'Cobranzas y deudores', corto: 'Cobranzas', icon: Receipt, count: deudoresCount, alerta: true },
     { id: 'solicitudes', label: 'Solicitudes de actualización', corto: 'Solicitudes', icon: ClipboardList, count: pendientesCount, alerta: true },
   ];
 
@@ -1026,6 +1029,14 @@ export default function AdminPanelPage() {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/*COBRANZAS*/}
+          {activeTab === 'cobranzas' && (
+            <div>
+              <TituloSeccion titulo="Cobranzas" subtitulo="Clientes con sus servicios, facturas y vencimientos. Ubicá rápido a los deudores." />
+              <CobranzasPanel onResumen={setDeudoresCount} />
             </div>
           )}
 

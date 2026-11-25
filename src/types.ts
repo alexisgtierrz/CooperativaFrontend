@@ -200,6 +200,23 @@ export interface Factura {
   idOperacion?: string | null;
 }
 
+export interface CobranzaCliente {
+  clienteId: number;
+  nombre: string;
+  dni: string;
+  email?: string | null;
+  telefono?: string | null;
+  activo: boolean;
+  servicios: { nombre: string; vigenteHasta?: string | null }[];
+  facturasPendientes: number;
+  facturasVencidas: number;
+  deudaTotal: number;
+  deudaVencida: number;
+  diasMaxAtraso: number;
+  proximoVencimiento?: string | null;
+  facturas: Factura[];
+}
+
 export interface PreferenciaPago {
   preferenceId: string;
   initPoint: string;
